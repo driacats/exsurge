@@ -23,16 +23,23 @@
 // THE SOFTWARE.
 //
 
-import { Units, Pitch, Point, Rect, Margins, Size, Step } from 'Exsurge.Core'
-import { Glyphs } from 'Exsurge.Glyphs'
-import { Latin } from 'Exsurge.Text'
+import { Units, Pitch, Point, Rect, Margins, Size, Step } from './Exsurge.Core'
+import { Glyphs } from './Exsurge.Glyphs'
+import { Latin } from './Exsurge.Text'
 
 
-// load in the web font for special chant characters here:
-var __exsurgeCharactersFont = require("url?limit=30000!../assets/fonts/ExsurgeChar.otf");
+// load in the web font for special chant characters here (published as a separate
+// file in dist/ so it is cacheable across pages using the library):
+// Note: Vite's library mode always inlines non-CSS assets as base64 -- true
+// separate-file serving isn't practical here since this build targets three
+// output formats (ESM/CJS/IIFE) and only ESM/CJS can reliably resolve a
+// relative runtime URL via import.meta.url; IIFE (the <script>-tag consumer)
+// cannot. This matches the original library's behavior anyway, which already
+// inlined this font as base64 via webpack's url-loader. See TODO.md.
+import __exsurgeCharactersFont from '../assets/fonts/ExsurgeChar.otf?inline';
 
 
-export let GlyphCode = {
+export const GlyphCode = {
 
   None: "None",
 
@@ -85,26 +92,34 @@ export let GlyphCode = {
   UpperBrace: "UpperBrace"
 }; // GlyphCode
 
+// the root <svg> node also carries a couple of ad-hoc properties bolted on
+// by QuickSvg.svg() below (a direct reference to its <defs> child, and a
+// helper to clear out all notation content while keeping defs intact)
+export interface ExsurgeSvgRoot extends SVGSVGElement {
+  defs: SVGDefsElement;
+  clearNotations(): void;
+}
+
 export var QuickSvg = {
 
-  // namespaces  
+  // namespaces
   ns: 'http://www.w3.org/2000/svg',
   xmlns: 'http://www.w3.org/2000/xmlns/',
   xlink: 'http://www.w3.org/1999/xlink',
 
   // create the root level svg object
-  svg: function(width, height) {
-    var node = document.createElementNS(this.ns,'svg');
+  svg: function(width: number, height: number): ExsurgeSvgRoot {
+    var node = document.createElementNS(this.ns, 'svg') as unknown as ExsurgeSvgRoot;
 
-    node.setAttribute('xmlns', this.ns); 
+    node.setAttribute('xmlns', this.ns);
     node.setAttribute('version', '1.1');
     node.setAttributeNS(this.xmlns, 'xmlns:xlink', this.xlink);
 
-    node.setAttribute('width', width);
-    node.setAttribute('height', height);
+    node.setAttribute('width', String(width));
+    node.setAttribute('height', String(height));
 
     // create the defs element
-    var defs = document.createElementNS(this.ns, 'defs');
+    var defs = document.createElementNS(this.ns, 'defs') as unknown as SVGDefsElement;
     node.appendChild(defs);
 
     node.defs = defs;
@@ -114,69 +129,69 @@ export var QuickSvg = {
       node.removeChild(defs);
 
       while (node.hasChildNodes())
-        node.removeChild(node.lastChild);
-      
+        node.removeChild(node.lastChild as ChildNode);
+
       node.appendChild(defs);
     }
 
     return node;
   },
 
-  rect: function(width, height) {
-    var node = document.createElementNS(this.ns, 'rect');
+  rect: function(width: number, height: number): SVGRectElement {
+    var node = document.createElementNS(this.ns, 'rect') as unknown as SVGRectElement;
 
-    node.setAttribute('width', width);
-    node.setAttribute('height', height);
-
-    return node;
-  },
-
-  line: function(x1, y1, x2, y2) {
-    var node = document.createElementNS(this.ns, 'line');
-
-    node.setAttribute('x1', x1);
-    node.setAttribute('y1', y1);
-    node.setAttribute('x2', x2);
-    node.setAttribute('y2', y2);
+    node.setAttribute('width', String(width));
+    node.setAttribute('height', String(height));
 
     return node;
   },
 
-  g: function() {
-    var node = document.createElementNS(this.ns, 'g');
+  line: function(x1: number, y1: number, x2: number, y2: number): SVGLineElement {
+    var node = document.createElementNS(this.ns, 'line') as unknown as SVGLineElement;
+
+    node.setAttribute('x1', String(x1));
+    node.setAttribute('y1', String(y1));
+    node.setAttribute('x2', String(x2));
+    node.setAttribute('y2', String(y2));
 
     return node;
   },
 
-  text: function() {
-    var node = document.createElementNS(this.ns, 'text');
+  g: function(): SVGGElement {
+    var node = document.createElementNS(this.ns, 'g') as unknown as SVGGElement;
 
     return node;
   },
 
-  tspan: function(str) {
-    var node = document.createElementNS(this.ns, 'tspan');
+  text: function(): SVGTextElement {
+    var node = document.createElementNS(this.ns, 'text') as unknown as SVGTextElement;
+
+    return node;
+  },
+
+  tspan: function(str: string): SVGTSpanElement {
+    var node = document.createElementNS(this.ns, 'tspan') as unknown as SVGTSpanElement;
     node.textContent = str;
 
     return node;
   },
 
   // nodeRef should be the id of the object in defs (without the #)
-  use: function(nodeRef) {
-    var node = document.createElementNS(this.ns, 'use');
+  use: function(nodeRef: string): SVGUseElement {
+    var node = document.createElementNS(this.ns, 'use') as unknown as SVGUseElement;
     node.setAttributeNS(this.xlink, "xlink:href", '#' + nodeRef);
 
     return node;
   },
 
-  createFragment: function(name, attributes, child) {
+  createFragment: function(name: string, attributes: Record<string, string | number>, child: string | null = ''): string {
     if (child === undefined || child === null)
       child = '';
 
     var fragment = '<' + name + ' ';
 
     for (var attr in attributes) {
-      if (attributes.hasOwnProperty(attr))
+      if (Object.prototype.hasOwnProperty.call(attributes, attr))
         fragment += attr + '="' + attributes[attr] + '" ';
     }
 
@@ -185,7 +200,7 @@ export var QuickSvg = {
     return fragment;
   },
 
-  parseFragment: function(fragment) {
+  parseFragment: function(fragment: string): SVGGElement | undefined {
 
     // create temporary holder
     var well = document.createElement('svg');
@@ -200,19 +215,20 @@ export var QuickSvg = {
       well.innerHTML = '<svg>' + fragment.replace(/\n/, '').replace(/<(\w+)([^<]+?)\/>/g, '<$1$2></$1>') + '</svg>'
 
       // transplant nodes
-      for (var i = 0, il = well.firstChild.childNodes.length; i < il; i++)
-        container.appendChild(well.firstChild.firstChild)
-      
+      var svgRoot = well.firstChild as Element;
+      for (var i = 0, il = svgRoot.childNodes.length; i < il; i++)
+        container.appendChild(svgRoot.firstChild as ChildNode)
+
       return container;
     }
   },
 
-  translate: function(node, x, y) {
+  translate: function(node: SVGElement, x: number, y: number): SVGElement {
     node.setAttribute('transform', 'translate(' + x + ',' + y + ')');
     return node;
   },
 
-  scale: function(node, sx, sy) {
+  scale: function(node: SVGElement, sx: number, sy: number): SVGElement {
     node.setAttribute('transform', 'scale(' + sx + ',' + sy + ')');
     return node;
   }
@@ -228,6 +244,51 @@ export var TextMeasuringStrategy = {
  * ChantContext
  */
 export class ChantContext {
+
+  textMeasuringStrategy: number;
+  defs: Record<string, unknown>;
+  lyricTextSize: number;
+  lyricTextFont: string;
+  lyricTextColor: string;
+  dropCapTextSize: number;
+  dropCapTextFont: string;
+  dropCapTextColor: string;
+  annotationTextSize: number;
+  annotationTextFont: string;
+  annotationTextColor: string;
+  glyphPunctumWidth: number;
+  glyphPunctumHeight: number;
+  glyphScaling: number;
+  staffInterval: number;
+  staffLineWeight: number;
+  neumeLineWeight: number;
+  dividerLineWeight: number;
+  episemaLineWeight: number;
+  // Clef instance (Exsurge.Chant.ts); left untyped here to avoid a circular
+  // type dependency, since Drawing.ts sits below Chant.ts in the module graph.
+  activeClef: any;
+  neumeLineColor: string;
+  staffLineColor: string;
+  dividerLineColor: string;
+  defaultLanguage: Latin;
+  canvas: HTMLCanvasElement;
+  canvasCtxt: CanvasRenderingContext2D;
+  pixelRatio: number;
+  svgTextMeasurer: SVGSVGElement | undefined;
+  hyphenWidth: number;
+  minLyricWordSpacing: number;
+  intraNeumeSpacing: number;
+  syllableConnector: string;
+  drawGuides: boolean;
+  drawDebuggingBounds: boolean;
+  // notation elements being laid out (Exsurge.Chant.ts); only valid during
+  // performLayout, same circular-dependency reasoning as activeClef above.
+  activeNotations: any;
+  // bolted on externally by ChantScore.performLayout/performLayoutAsync (ctxt.notations = ...)
+  notations: any[];
+  currNotationIndex: number;
+  condensingTolerance: number;
+  autoColor: boolean;
 
   constructor(textMeasuringStrategy = TextMeasuringStrategy.Svg) {
 
@@ -275,24 +336,19 @@ export class ChantContext {
     this.defaultLanguage = new Latin();
 
     this.canvas = document.createElement("canvas");
-    this.canvasCtxt = this.canvas.getContext("2d");
+    this.canvasCtxt = this.canvas.getContext("2d")!;
 
-    // calculate the pixel ratio for drawing to a canvas
-    var dpr = window.devicePixelRatio || 1.0;
-    var bsr = this.canvasCtxt.webkitBackingStorePixelRatio ||
-              this.canvasCtxt.mozBackingStorePixelRatio ||
-              this.canvasCtxt.msBackingStorePixelRatio ||
-              this.canvasCtxt.oBackingStorePixelRatio ||
-              this.canvasCtxt.backingStorePixelRatio || 1.0;
-
-    this.pixelRatio = dpr / bsr;
+    // calculate the pixel ratio for drawing to a canvas. (older browsers exposed
+    // a vendor-prefixed backingStorePixelRatio to correct for this; all current
+    // browsers report devicePixelRatio directly, so no correction is needed.)
+    this.pixelRatio = window.devicePixelRatio || 1.0;
 
     this.canvasCtxt.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
 
     if(textMeasuringStrategy === TextMeasuringStrategy.Svg) {
       this.svgTextMeasurer = QuickSvg.svg(1,1);
       this.svgTextMeasurer.setAttribute('id', "TextMeasurer");
-      document.querySelector('body').appendChild(this.svgTextMeasurer);
+      document.body.appendChild(this.svgTextMeasurer);
     }
 
     // measure the size of a hyphen for the lyrics
@@ -343,13 +399,11 @@ export class ChantContext {
     return -staffPosition * this.staffInterval;
   }
 
-  insertFontsInDoc() {
+  insertFontsInDoc(): void {
 
-    var styleElement = document.getElementById('exsurge-fonts');
-
-    if (styleElement === null) {
+    if (document.getElementById('exsurge-fonts') === null) {
       // create it since it doesn't exist yet.
-      styleElement = document.createElement('style');
+      var styleElement = document.createElement('style');
       styleElement.id = 'exsurge-fonts';
 
       styleElement.appendChild(document.createTextNode("@font-face{font-family: 'Exsurge Characters';font-weight: normal;font-style: normal;src: url(" + __exsurgeCharactersFont + ") format('opentype');}"));
@@ -390,6 +444,11 @@ export class ChantContext {
  * ChantLayoutElement
  */
 export class ChantLayoutElement {
+
+  bounds: Rect;
+  origin: Point;
+  selected: boolean;
+  highlighted: boolean;
 
   constructor() {
 
@@ -584,6 +643,10 @@ export class VirgaLineVisualizer extends ChantLayoutElement {
 
 export class GlyphVisualizer extends ChantLayoutElement {
 
+  glyph: any;
+  glyphCode: any;
+  align: any;
+
   constructor(ctxt, glyphCode) {
     super();
 
@@ -605,7 +668,7 @@ export class GlyphVisualizer extends ChantLayoutElement {
     this.glyph = Glyphs[this.glyphCode];
 
     // if this glyph hasn't been used yet, then load it up in the defs section for sharing
-    if (!ctxt.defs.hasOwnProperty(this.glyphCode)) {
+    if (!Object.prototype.hasOwnProperty.call(ctxt.defs, this.glyphCode)) {
       var glyphSrc = this.glyph.svgSrc;
 
       // create the ref
@@ -660,6 +723,13 @@ export class GlyphVisualizer extends ChantLayoutElement {
 }
 
 export class RoundBraceVisualizer extends ChantLayoutElement {
+
+  isAbove: any;
+  braceHeight: any;
+  bounds: Rect;
+  // round braces never actually get one (only curly/"cba" braces do; see
+  // CurlyBraceVisualizer below), but createSvgFragment below checks for it
+  acuteAccent: GlyphVisualizer | undefined;
 
   constructor(ctxt, x1, x2, y, isAbove) {
     super();
@@ -734,6 +804,11 @@ export class RoundBraceVisualizer extends ChantLayoutElement {
 }
 
 export class CurlyBraceVisualizer extends ChantLayoutElement {
+
+  isAbove: any;
+  braceHeight: any;
+  acuteAccent: GlyphVisualizer;
+  bounds: any;
 
   constructor(ctxt, x1, x2, y, isAbove = true, addAcuteAccent = false) {
     super();
@@ -833,46 +908,59 @@ export class CurlyBraceVisualizer extends ChantLayoutElement {
   }
 }
 
-var TextSpan = function(text, properties) {
-  if (typeof properties === 'undefined' || properties === null)
-    properties = "";
+// a run of text sharing the same inline style (e.g., bold, italic, red, small-caps),
+// as produced by TextElement.generateSpansFromText's markup parsing below.
+class TextSpan {
+  text: string;
+  properties: string;
 
-  this.text = text;
-  this.properties = properties;
-};
+  constructor(text: string, properties?: string) {
+    if (typeof properties === 'undefined' || properties === null)
+      properties = "";
+
+    this.text = text;
+    this.properties = properties;
+  }
+}
 
 var boldMarkup = "*";
 var italicMarkup = "_";
 var redMarkup = "^";
 var smallCapsMarkup = "%";
 
-function MarkupStackFrame(symbol, startIndex, properties) {
-  this.symbol = symbol;
-  this.startIndex = startIndex;
-  this.properties = properties;
-}
+class MarkupStackFrame {
+  symbol: string;
+  startIndex: number;
+  properties: string;
 
-MarkupStackFrame.createStackFrame = function(symbol, startIndex) {
-
-  var properties = "";
-
-  switch(symbol) {
-    case boldMarkup:
-      properties = 'font-weight:bold;';
-      break;
-    case italicMarkup:
-      properties = 'font-style:italic;';
-      break;
-    case redMarkup:
-      properties = 'fill:#f00;'; // SVG text color is set by the fill property
-      break;
-    case smallCapsMarkup:
-      properties = "font-variant:small-caps;font-feature-settings:'smcp';-webkit-font-feature-settings:'smcp';";
-      break;
+  constructor(symbol: string, startIndex: number, properties: string) {
+    this.symbol = symbol;
+    this.startIndex = startIndex;
+    this.properties = properties;
   }
 
-  return new MarkupStackFrame(symbol, startIndex, properties);
-};
+  static createStackFrame(symbol: string, startIndex: number): MarkupStackFrame {
+
+    var properties = "";
+
+    switch(symbol) {
+      case boldMarkup:
+        properties = 'font-weight:bold;';
+        break;
+      case italicMarkup:
+        properties = 'font-style:italic;';
+        break;
+      case redMarkup:
+        properties = 'fill:#f00;'; // SVG text color is set by the fill property
+        break;
+      case smallCapsMarkup:
+        properties = "font-variant:small-caps;font-feature-settings:'smcp';-webkit-font-feature-settings:'smcp';";
+        break;
+    }
+
+    return new MarkupStackFrame(symbol, startIndex, properties);
+  }
+}
 
 
 // for escaping html strings before they go into the svgs
@@ -884,6 +972,13 @@ var __subsForTspans = {
 };
 
 export class TextElement extends ChantLayoutElement {
+
+  fontFamily: any;
+  fontSize: any;
+  textAnchor: any;
+  dominantBaseline: any;
+  text: string;
+  spans: any[];
 
   constructor(ctxt, text, fontFamily, fontSize, textAnchor) {
     super();
@@ -917,13 +1012,15 @@ export class TextElement extends ChantLayoutElement {
       return;
     }
 
-    var markupStack = [];
+    var markupStack: MarkupStackFrame[] = [];
     var spanStartIndex = 0;
 
-    var filterFrames = (frame, symbol) => frame.Symbol === symbol;
+    var filterFrames = (frame: MarkupStackFrame) => frame.symbol === markupSymbol;
 
+    // closeSpan below is a plain function (not an arrow), so it needs `this` captured via closure
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     var that = this;
-    var closeSpan = function (spanText, extraProperties) {
+    var closeSpan = function (spanText: string, extraProperties?: string) {
       if (spanText === "")
         return;
 
@@ -941,7 +1038,7 @@ export class TextElement extends ChantLayoutElement {
 
     var markupRegex = /(\*|_|\^|%|[ARVarv]\/\.)/g;
 
-    var match = null;
+    var match: RegExpExecArray | null = null;
     while ((match = markupRegex.exec(text))) {
 
       var markupSymbol = match[0];
@@ -988,7 +1085,7 @@ export class TextElement extends ChantLayoutElement {
       closeSpan(text);
   }
 
-  measureSubstring(ctxt, length) {
+  measureSubstring(ctxt, length?: number) {
     if(length === 0) return 0;
     if(!length) length = Infinity;
     var canvasCtxt = ctxt.canvasCtxt;
@@ -1110,6 +1207,20 @@ export var LyricType = {
 };
 
 export class Lyric extends TextElement {
+
+  originalText: any;
+  lyricType: any;
+  centerStartIndex: number;
+  centerLength: any;
+  needsConnector: boolean;
+  language: any;
+  lastSpanText: any;
+  lastSpanTextWithConnector: any;
+  widthWithoutConnector: any;
+  textWithConnector: any;
+  widthWithConnector: any;
+  // bolted on externally by Exsurge.Gabc.ts's makeLyric()
+  elidesToNext: boolean;
   constructor(ctxt, text, lyricType) {
     super(ctxt, text, ctxt.lyricTextFont, ctxt.lyricTextSize, 'start');
 
@@ -1267,7 +1378,7 @@ export class Lyric extends TextElement {
   }
 
   getExtraStyleProperties(ctxt) {
-    var props = super.getExtraStyleProperties();
+    var props = super.getExtraStyleProperties(ctxt);
 
     if (this.lyricType === LyricType.Directive && ctxt.autoColor === true)
       props += "fill:#f00;";
@@ -1289,6 +1400,8 @@ export class Lyric extends TextElement {
 
 export class DropCap extends TextElement {
 
+  padding: any;
+
   /**
    * @param {String} text
    */
@@ -1304,6 +1417,9 @@ export class DropCap extends TextElement {
 }
 
 export class Annotation extends TextElement {
+
+  padding: any;
+  dominantBaseline: any;
 
   /**
    * @param {String} text
@@ -1322,6 +1438,16 @@ export class Annotation extends TextElement {
 
 
 export class ChantNotationElement extends ChantLayoutElement {
+
+  leadingSpace: number;
+  trailingSpace: any;
+  keepWithNext: boolean;
+  needsLayout: boolean;
+  lyrics: any[];
+  score: any;
+  line: any;
+  visualizers: any[];
+  declare bounds: any;
 
   constructor() {
     super();

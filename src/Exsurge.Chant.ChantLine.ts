@@ -23,18 +23,36 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
-import { Step, Pitch, Rect, Point, Margins } from 'Exsurge.Core'
-import { QuickSvg, ChantLayoutElement, GlyphVisualizer, RoundBraceVisualizer, CurlyBraceVisualizer, Lyric, DropCap } from 'Exsurge.Drawing'
-import { ChantLineBreak } from 'Exsurge.Chant'
-import { Glyphs } from 'Exsurge.Glyphs'
-import { Custos } from 'Exsurge.Chant.Signs'
-import { MarkingPositionHint, HorizontalEpisemaAlignment, HorizontalEpisema, BraceShape, BracePoint } from 'Exsurge.Chant.Markings'
+import { Step, Pitch, Rect, Point, Margins } from './Exsurge.Core'
+import { QuickSvg, ChantLayoutElement, GlyphVisualizer, RoundBraceVisualizer, CurlyBraceVisualizer, Lyric, DropCap } from './Exsurge.Drawing'
+import { ChantLineBreak } from './Exsurge.Chant'
+import { Glyphs } from './Exsurge.Glyphs'
+import { Custos } from './Exsurge.Chant.Signs'
+import { MarkingPositionHint, HorizontalEpisemaAlignment, HorizontalEpisema, BraceShape, BracePoint } from './Exsurge.Chant.Markings'
 
 
 // a chant line represents one staff line on the page. ChantLines are created by the score
 // and laid out by the page
 export class ChantLine extends ChantLayoutElement {
+
+  score: any;
+  notationsStartIndex: number;
+  numNotationsOnLine: number;
+  notationBounds: any;
+  staffLeft: number;
+  staffRight: number;
+  startingClef: any;
+  custos: any;
+  justify: boolean;
+  ledgerLines: any[];
+  braces: any[];
+  nextLine: any;
+  previousLine: any;
+  lyricLineHeights: any;
+  lyricLineBaselines: any;
+  spaceAfterNotations: any;
+  spaceBetweenTextTracks: any;
+  declare origin: Point;
 
   constructor(score) {
     super();
@@ -80,7 +98,7 @@ export class ChantLine extends ChantLayoutElement {
     var i;
     var notations = this.score.notations;
     var lastIndex = this.notationsStartIndex + this.numNotationsOnLine;
-    var notation = null;
+    var notation: any = null;
 
     this.notationBounds.union(this.startingClef.bounds);
 
@@ -511,7 +529,7 @@ export class ChantLine extends ChantLayoutElement {
   justifyElements() {
 
     var i;
-    var toJustify = [];
+    var toJustify: any[] = [];
     var notations = this.score.notations;
     var lastIndex = this.notationsStartIndex + this.numNotationsOnLine;
 
@@ -519,7 +537,7 @@ export class ChantLine extends ChantLayoutElement {
     var extraSpace = 0;
 
     if (this.numNotationsOnLine > 0) {
-      var last = notations[lastIndex - 1], lastWithLyrics = null;
+      var last = notations[lastIndex - 1], lastWithLyrics: any = null;
 
       for (i = lastIndex - 1; i >= this.notationsStartIndex; i--) {
         if (notations[i].hasLyrics()) {
@@ -540,7 +558,7 @@ export class ChantLine extends ChantLayoutElement {
     if (extraSpace <= 0)
       return;
 
-    var prev = null, curr = null, prevWithLyrics = null;
+    var prev: any = null, curr: any = null, prevWithLyrics: any = null;
 
     // first pass: determine the neumes we can space apart
     for (i = this.notationsStartIndex; i < lastIndex; i++) {
@@ -635,8 +653,8 @@ export class ChantLine extends ChantLayoutElement {
       }
     };
 
-    var epismata = []; // keep track of epismata in case we can connect some
-    var startBrace = null, startBraceNotationIndex = 0;
+    var epismata: any[] = []; // keep track of epismata in case we can connect some
+    var startBrace: any = null, startBraceNotationIndex = 0;
     var minY = Number.MAX_VALUE, maxY = Number.MIN_VALUE; // for braces
 
     // make a final pass over all of the notes to add any necessary
@@ -768,10 +786,8 @@ export class ChantLine extends ChantLayoutElement {
       }
     }
 
-    // if we still have an active brace, that means it spands two chant lines!
-    if (startBrace !== null) {
-      startBrace = startBrace;
-    }
+    // fixme: if we still have an active brace here, it means it spans two chant
+    // lines -- not handled yet; the brace just silently stops at the line break.
 
     // don't forget to also include the final custos, which may need a ledger line too
     if (this.custos)

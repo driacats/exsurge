@@ -24,16 +24,16 @@
 // THE SOFTWARE.
 //
 
-import { Units, Pitch, Point, Rect, Margins, Size, Step } from 'Exsurge.Core'
-import { LyricType, Lyric } from 'Exsurge.Drawing'
-import { Note, LiquescentType, NoteShape, NoteShapeModifiers, ChantMapping, ChantScore, ChantDocument, Clef, DoClef, FaClef, TextOnly, ChantLineBreak } from 'Exsurge.Chant'
-import * as Markings from 'Exsurge.Chant.Markings'
-import * as Signs from 'Exsurge.Chant.Signs'
-import * as Neumes from 'Exsurge.Chant.Neumes'
+import { Units, Pitch, Point, Rect, Margins, Size, Step } from './Exsurge.Core'
+import { LyricType, Lyric } from './Exsurge.Drawing'
+import { Note, LiquescentType, NoteShape, NoteShapeModifiers, ChantMapping, ChantScore, ChantDocument, Clef, DoClef, FaClef, TextOnly, ChantLineBreak } from './Exsurge.Chant'
+import * as Markings from './Exsurge.Chant.Markings'
+import * as Signs from './Exsurge.Chant.Signs'
+import * as Neumes from './Exsurge.Chant.Neumes'
 
 // reusable reg exps
 var __syllablesRegex = /(?=.)((?:[^(])*)(?:\(?([^)]*)\)?)?/g;
-var __notationsRegex = /z0|z|Z|::|:|;|,|`|c1|c2|c3|c4|f3|f4|cb3|cb4|\/\/|\/| |\!|-?[a-mA-M][oOwWvVrRsxy#~\+><_\.'012345]*(?:\[[^\]]*\]?)*/g;
+var __notationsRegex = /z0|z|Z|::|:|;|,|`|c1|c2|c3|c4|f3|f4|cb3|cb4|\/\/|\/| |!|-?[a-mA-M][oOwWvVrRsxy#~+><_.'012345]*(?:\[[^\]]*\]?)*/g;
 
 // for the brace string inside of [ and ] in notation data
 // the capturing groups are:
@@ -57,7 +57,7 @@ export class Gabc {
     // set the default clef
     ctxt.activeClef = Clef.default();
     
-    var mappings = this.createMappingsFromWords(ctxt, words, (clef) => ctxt.activeClef = clef);
+    var mappings: ChantMapping[] = this.createMappingsFromWords(ctxt, words);
 
     // always set the last notation to have a trailingSpace of 0. This makes layout for the last chant line simpler
     if (mappings.length > 0 && mappings[mappings.length - 1].notations.length > 0)
@@ -83,21 +83,21 @@ export class Gabc {
   //   the original before and/or after lists. The first part of the pair
   //   corresponds to whether the list of values is a deletion, insertion, or
   //   unchanged, respectively.
-  static diffDescriptorsAndNewWords(before, after) {
+  static diffDescriptorsAndNewWords(before: any[], after: any[]): any[] {
 
     // Create a map from before values to their indices
-    var oldIndexMap = {}, i;
+    var oldIndexMap: Record<string, number[]> = {}, i;
     for (i = 0; i < before.length; i ++) {
       oldIndexMap[before[i].source] = oldIndexMap[before[i].source] || [];
       oldIndexMap[before[i].source].push(i);
     }
 
-    var overlap = [], startOld, startNew, subLength, inew;
+    var overlap: number[] = [], startOld, startNew, subLength, inew;
 
     startOld = startNew = subLength = 0;
 
     for (inew = 0; inew < after.length; inew++) {
-      var _overlap                = [];
+      var _overlap: number[]      = [];
       oldIndexMap[after[inew]]    = oldIndexMap[after[inew]] || [];
       for (i = 0; i < oldIndexMap[after[inew]].length; i++) {
         var iold        = oldIndexMap[after[inew]][i];
@@ -116,11 +116,11 @@ export class Gabc {
 
     if (subLength === 0) {
       // If no common substring is found, we return an insert and delete...
-      var result = [];
+      var result: [string, any][] = [];
 
       if (before.length)
         result.push(['-', before]);
-      
+
       if (after.length)
         result.push(['+', after]);
 
@@ -129,7 +129,7 @@ export class Gabc {
 
     // ...otherwise, the common substring is unchanged and we recursively
     // diff the text before and after that substring
-    return [].concat(
+    return ([] as any[]).concat(
       this.diffDescriptorsAndNewWords(before.slice(0, startOld), after.slice(0, startNew)),
       [['=', after.slice(startNew, startNew + subLength)]],
       this.diffDescriptorsAndNewWords(before.slice(startOld + subLength), after.slice(startNew + subLength))
@@ -197,8 +197,8 @@ export class Gabc {
 
   // takes an array of gabc words (like that returned by splitWords below)
   // and returns an array of ChantMapping objects, one for each word.
-  static createMappingsFromWords(ctxt, words) {
-    var mappings = [];
+  static createMappingsFromWords(ctxt, words): ChantMapping[] {
+    var mappings: ChantMapping[] = [];
 
     for (var i = 0; i < words.length; i++) {
       var word = words[i].trim();
@@ -218,17 +218,18 @@ export class Gabc {
   // takes a gabc word (like those returned by splitWords below) and returns
   // a ChantMapping object that contains the gabc word source text as well
   // as the generated notations.
-  static createMappingFromWord(ctxt, word) {
+  static createMappingFromWord(ctxt, word): ChantMapping {
 
-    var matches = [];
-    var notations = [];
+    var matches: RegExpExecArray[] = [];
+    var notations: any[] = [];
     var currSyllable = 0;
-    
+    var match: RegExpExecArray | null;
+
     while ((match = __syllablesRegex.exec(word)))
       matches.push(match);
 
     for (var j = 0; j < matches.length; j++) {
-      var match = matches[j];
+      match = matches[j];
 
       var lyricText = match[1].trim();
       var notationData = match[2];
@@ -244,9 +245,10 @@ export class Gabc {
         continue;
 
       // add the lyrics to the first notation that makes sense...
-      var notationWithLyrics = null;
+      var notationWithLyrics: any = null;
+      var cne: any;
       for (var i = 0; i < items.length; i++) {
-        var cne = items[i];
+        cne = items[i];
 
         if (cne.isAccidental || cne.constructor === Signs.Custos)
           continue;
@@ -256,7 +258,10 @@ export class Gabc {
       }
 
       if (notationWithLyrics === null)
-        return notations;
+        // no notation in this syllable can carry lyrics (e.g., it's only an
+        // accidental/custos) -- still return a proper ChantMapping, matching
+        // every other return path of this function
+        return new ChantMapping(word, notations);
     
       var proposedLyricType;
       
@@ -292,9 +297,9 @@ export class Gabc {
   }
 
   // returns an array of lyrics (an array because each syllable can have multiple lyrics)
-  static createSyllableLyrics(ctxt, text, proposedLyricType) {
+  static createSyllableLyrics(ctxt, text, proposedLyricType): Lyric[] {
 
-    var lyrics = [];
+    var lyrics: Lyric[] = [];
 
     // an extension to gabc: multiple lyrics per syllable can be separated by a |
     var lyricTexts = text.split('|');
@@ -368,14 +373,14 @@ export class Gabc {
 
   // takes a string of gabc notations and creates exsurge objects out of them.
   // returns an array of notations.
-  static parseNotations(ctxt, data) {
+  static parseNotations(ctxt, data): any[] {
 
     // if there is no data, then this must be a text only object
     if (!data)
       return [new TextOnly()];
 
-    var notations = [];
-    var notes = [];
+    var notations: any[] = [];
+    var notes: any[] = [];
     var trailingSpace = -1;
 
     var addNotation = (notation) => {
@@ -526,7 +531,7 @@ export class Gabc {
                 break;
             }
 
-            var noteArray = [];
+            var noteArray: any[] = [];
             this.createNoteFromData(ctxt, ctxt.activeClef, atom, noteArray);
             var accidental = new Signs.Accidental(noteArray[0].staffPosition, accidentalType);
             accidental.trailingSpace = ctxt.intraNeumeSpacing * 2;
@@ -550,8 +555,8 @@ export class Gabc {
   }
 
   static createNeumesFromNotes(ctxt, notes, finalTrailingSpace) {
-    
-    var neumes = [];
+
+    var neumes: any[] = [];
     var firstNoteIndex = 0;
     var currNoteIndex = 0;
 
@@ -885,7 +890,10 @@ export class Gabc {
       }
     };
 
-    var state = unknownState;
+    // typed loosely: each state's handle() has its own inferred shape, and (pre-existing
+    // behavior, not changed here) a couple of branches fall through without an explicit
+    // return, so this can become undefined at runtime for certain note sequences
+    var state: any = unknownState;
 
     while (currNoteIndex < notes.length) {
 
@@ -1216,7 +1224,7 @@ export class Gabc {
     // immediately follows a set of parentheses. Prior to doing that, we replace
     // all whitespace with spaces, which prevents tabs and newlines from ending
     // up in the notation data.
-    gabcNotations = gabcNotations.trim().replace(/\s/g, ' ').replace(/\) (?=[^\)]*(?:\(|$))/g,')\n');
+    gabcNotations = gabcNotations.trim().replace(/\s/g, ' ').replace(/\) (?=[^)]*(?:\(|$))/g,')\n');
     return gabcNotations.split(/\n/g);
   }
 
@@ -1226,7 +1234,7 @@ export class Gabc {
 
   // gabcWords is an array of strings, e.g., the result of splitWords above
   static parseWords(gabcWords) {
-    var words = [];
+    var words: { notations: any; lyrics: string[] }[][] = [];
 
     for (var i = 0; i < gabcWords.length; i++)
       words.push(this.parseWord(gabcWords[i]));
@@ -1237,16 +1245,17 @@ export class Gabc {
   // returns an array of objects, each of which has the following properties
   //  - notations (string)
   //  - lyrics (array of strings)
-  static parseWord(gabcWord) {
+  static parseWord(gabcWord): { notations: any; lyrics: string[] }[] {
 
-    var syllables = [];
-    var matches = [];
-    
+    var syllables: { notations: any; lyrics: string[] }[] = [];
+    var matches: RegExpExecArray[] = [];
+    var match: RegExpExecArray | null;
+
     while ((match = __syllablesRegex.exec(gabcWord)))
       matches.push(match);
 
     for (var j = 0; j < matches.length; j++) {
-      var match = matches[j];
+      match = matches[j];
 
       var lyrics = match[1].trim().split('|');
       var notations = match[2];

@@ -23,7 +23,7 @@
 // THE SOFTWARE.
 //
 
-export var Units = {
+export const Units = {
   // enums
   DeviceIndepenedent: 0, // device independent units: 96/inch
   Centimeters: 1,
@@ -34,92 +34,91 @@ export var Units = {
   DIU_PER_INCH: 96,
   DIU_PER_CENTIMETER: 96 / 2.54,
 
-  ToDeviceIndependent: function (n, inputUnits) {
+  ToDeviceIndependent(n: number, inputUnits: number): number {
     switch (inputUnits) {
-      case Centimeters:
-        return n * DIU_PER_CENTIMETER;
-      case Millimeters:
-        return n * DIU_PER_CENTIMETER / 10;
-      case Inches:
-        return n * DIU_PER_INCH;
+      case Units.Centimeters:
+        return n * Units.DIU_PER_CENTIMETER;
+      case Units.Millimeters:
+        return n * Units.DIU_PER_CENTIMETER / 10;
+      case Units.Inches:
+        return n * Units.DIU_PER_INCH;
       default:
         return n;
     }
   },
 
-  FromDeviceIndependent: function (n, outputUnits) {
+  FromDeviceIndependent(n: number, outputUnits: number): number {
     switch (outputUnits) {
-      case Centimeters:
-        return n / DIU_PER_CENTIMETER;
-      case Millimeters:
-        return n / DIU_PER_CENTIMETER * 10;
-      case Inches:
-        return n / DIU_PER_INCH;
+      case Units.Centimeters:
+        return n / Units.DIU_PER_CENTIMETER;
+      case Units.Millimeters:
+        return n / Units.DIU_PER_CENTIMETER * 10;
+      case Units.Inches:
+        return n / Units.DIU_PER_INCH;
       default:
         return n;
     }
   },
 
-
-  StringToUnitsType: function(s) {
-    switch (s.ToLower()) {
+  StringToUnitsType(s: string): number {
+    switch (s.toLowerCase()) {
       case "in":
       case "inches":
-        return Inches;
+        return Units.Inches;
 
       case "cm":
       case "centimeters":
-        return Centimeters;
+        return Units.Centimeters;
 
       case "mm":
       case "millimeters":
-        return Millimeters;
+        return Units.Millimeters;
 
       case "di":
       case "device-independent":
-        return DeviceIndepenedent;
+        return Units.DeviceIndepenedent;
 
       default:
-        return DeviceIndepenedent;
+        return Units.DeviceIndepenedent;
     }
   },
 
-  UnitsTypeToString: function(units) {
+  UnitsTypeToString(units: number): string {
     switch (units) {
-      case Inches: return "in";
-      case Centimeters: return "cm";
-      case Millimeters: return "mm";
-      case DeviceIndepenedent: return "device-independent";
+      case Units.Inches: return "in";
+      case Units.Centimeters: return "cm";
+      case Units.Millimeters: return "mm";
+      case Units.DeviceIndepenedent: return "device-independent";
       default: return "device-independent";
     }
   }
-}
+};
 
-export function DeviceIndependent(n) {
+export function DeviceIndependent(n: number): number {
   return n;
 }
 
-export function Centimeters(n) {
+export function Centimeters(n: number): number {
   return Units.ToDeviceIndependent(n, Units.Centimeters);
 }
 
-export function Millimeters(n) {
+export function Millimeters(n: number): number {
   return Units.ToDeviceIndependent(n, Units.Millimeters);
 }
 
-export function Inches(n) {
+export function Inches(n: number): number {
   return Units.ToDeviceIndependent(n, Units.Inches);
 }
 
-export function ToCentimeters(n) {
+export function ToCentimeters(n: number): number {
   return Units.FromDeviceIndependent(n, Units.Centimeters);
 }
 
-export function ToMillimeters(n) {
+export function ToMillimeters(n: number): number {
   return Units.FromDeviceIndependent(n, Units.Millimeters);
 }
 
-export function ToInches(n) {
+export function ToInches(n: number): number {
   return Units.FromDeviceIndependent(n, Units.Inches);
 }
 
@@ -128,16 +127,19 @@ export function ToInches(n) {
  * Point
  */
 export class Point {
-  constructor(x, y) {
+  x: number;
+  y: number;
+
+  constructor(x?: number, y?: number) {
     this.x = (typeof x !== 'undefined') ? x : 0;
     this.y = (typeof y !== 'undefined') ? y : 0;
   }
 
-  clone() {
+  clone(): Point {
     return new Point(this.x, this.y);
   }
 
-  equals(point) {
+  equals(point: Point): boolean {
     return this.x === point.x && this.y === point.y;
   }
 }
@@ -146,18 +148,23 @@ export class Point {
  * Rect
  */
 export class Rect {
-  constructor(x, y, width, height) {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+
+  constructor(x?: number, y?: number, width?: number, height?: number) {
     this.x = (typeof x !== 'undefined') ? x : Infinity;
     this.y = (typeof y !== 'undefined') ? y : Infinity;
     this.width = (typeof width !== 'undefined') ? width : -Infinity;
     this.height = (typeof height !== 'undefined') ? height : -Infinity;
   }
 
-  clone() {
+  clone(): Rect {
     return new Rect(this.x, this.y, this.width, this.height);
   }
 
-  isEmpty() {
+  isEmpty(): boolean {
     return (this.x === Infinity &&
             this.y === Infinity &&
             this.width === -Infinity &&
@@ -165,21 +172,21 @@ export class Rect {
   }
 
   // convenience method
-  right() {
+  right(): number {
     return this.x + this.width;
   }
 
-  bottom() {
+  bottom(): number {
     return this.y + this.height;
   }
 
-  equals(rect) {
+  equals(rect: Rect): boolean {
     return this.x === rect.x && this.y === rect.y &&
            this.width === rect.width && this.height === rect.height;
   }
 
   // other can be a Point or a Rect
-  contains(other) {
+  contains(other: Point | Rect): boolean {
     if (other instanceof Point) {
       return other.x >= this.x &&
               other.x <= this.x + this.width &&
@@ -193,7 +200,7 @@ export class Rect {
     }
   }
 
-  union(rect) {
+  union(rect: Rect): void {
 
     var right = Math.max(this.x + this.width, rect.x + rect.width);
     var bottom = Math.max(this.y + this.height, rect.y + rect.height);
@@ -212,18 +219,23 @@ export class Rect {
  * @class
  */
 export class Margins {
-  constructor(left, top, right, bottom) {
+  left: number;
+  top: number;
+  right: number;
+  bottom: number;
+
+  constructor(left?: number, top?: number, right?: number, bottom?: number) {
     this.left = (typeof left !== 'undefined') ? left : 0;
     this.top = (typeof top !== 'undefined') ? top : 0;
     this.right = (typeof right !== 'undefined') ? right : 0;
     this.bottom = (typeof bottom !== 'undefined') ? bottom : 0;
   }
 
-  clone() {
+  clone(): Margins {
     return new Margins(this.left, this.top, this.right, this.bottom);
   }
 
-  equals(margins) {
+  equals(margins: Margins): boolean {
     return this.left === margins.left &&
         this.top === margins.top &&
         this.right === margins.right &&
@@ -237,16 +249,19 @@ export class Margins {
  * @class
  */
 export class Size {
-  constructor(width, height) {
+  width: number;
+  height: number;
+
+  constructor(width?: number, height?: number) {
     this.width = (typeof width !== 'undefined') ? width : 0;
     this.height = (typeof height !== 'undefined') ? height : 0;
   }
 
-  clone() {
+  clone(): Size {
     return new Size(this.width, this.height);
   }
 
-  equals(size) {
+  equals(size: Size): boolean {
     return this.width === size.width && this.height === size.height;
   }
 }
@@ -255,7 +270,7 @@ export class Size {
 /*
  * Pitches, notes
  */
-export var Step = {
+export const Step = {
   Do: 0,
   Du: 1,
   Re: 2,
@@ -276,37 +291,40 @@ export var Step = {
   // so simply because chant only uses do and fa clefs, and only has a flatted ti (te), making
   // for relatively easy mapping to staff line locations.
   //                         Do Du Re Me Mi Fa Fu So    La Te Ti
-var __StepToStaffPosition = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6];
-var __StaffOffsetToStep = [Step.Do, Step.Re, Step.Mi, Step.Fa, Step.So, Step.La, Step.Ti]; // no accidentals in this one
+const __StepToStaffPosition = [0, 0, 1, 1, 2, 3, 3, 4, 4, 5, 6, 6];
+const __StaffOffsetToStep = [Step.Do, Step.Re, Step.Mi, Step.Fa, Step.So, Step.La, Step.Ti]; // no accidentals in this one
 
 
 export class Pitch {
-  constructor(step, octave) {
+  step: number;
+  octave: number;
+
+  constructor(step: number, octave: number) {
     this.step = step;
     this.octave = octave;
   }
-  
-  toInt() {
+
+  toInt(): number {
     return this.octave * 12 + this.step;
   }
 
-  isHigherThan(pitch) {
+  isHigherThan(pitch: Pitch): boolean {
     return this.toInt() > pitch.toInt();
   }
 
-  isLowerThan(pitch) {
+  isLowerThan(pitch: Pitch): boolean {
     return this.toInt() < pitch.toInt();
   }
 
-  equals(pitch) {
+  equals(pitch: Pitch): boolean {
     return this.toInt() === pitch.toInt();
   }
 
-  static stepToStaffOffset(step) {
+  static stepToStaffOffset(step: number): number {
     return __StepToStaffPosition[step];
   }
 
-  static staffOffsetToStep(offset) {
+  static staffOffsetToStep(offset: number): number {
     while (offset < 0)
       offset = __StaffOffsetToStep.length + offset;
 
@@ -314,8 +332,8 @@ export class Pitch {
   }
 }
 
-export function generateRandomGuid() {
-  function s4() {
+export function generateRandomGuid(): string {
+  function s4(): string {
     return Math.floor((1 + Math.random()) * 0x10000)
       .toString(16)
       .substring(1);

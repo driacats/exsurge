@@ -23,9 +23,33 @@
 // THE SOFTWARE.
 //
 
+export interface GlyphPath {
+  type: "positive" | "negative";
+  data: string;
+}
+
+export interface GlyphBounds {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface GlyphOrigin {
+  x: number;
+  y: number;
+}
+
+export interface GlyphDefinition {
+  svgSrc: string;
+  paths: GlyphPath[];
+  bounds: GlyphBounds;
+  origin: GlyphOrigin;
+  align: "left" | "right" | "center";
+}
 
 // generated based on the svg data
-export let Glyphs = {
+export const Glyphs: Record<string, GlyphDefinition> = {
   "None": {
     "svgSrc": "<g></g>",
     "paths": [{

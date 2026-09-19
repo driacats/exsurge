@@ -23,13 +23,12 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
-import { Step, Pitch, Rect, Point, Margins } from 'Exsurge.Core'
-import { QuickSvg, ChantLayoutElement, ChantNotationElement, GlyphCode, GlyphVisualizer, Lyric, Annotation, DropCap } from 'Exsurge.Drawing'
-import { ChantLine } from 'Exsurge.Chant.ChantLine'
-import { AccidentalType } from 'Exsurge.Chant.Signs'
-import { MarkingPositionHint, HorizontalEpisemaAlignment, HorizontalEpisema, BraceStart, BraceEnd } from 'Exsurge.Chant.Markings'
-import { Gabc } from 'Exsurge.Gabc'
+import { Step, Pitch, Rect, Point, Margins } from './Exsurge.Core'
+import { QuickSvg, ChantLayoutElement, ChantNotationElement, GlyphCode, GlyphVisualizer, Lyric, Annotation, DropCap } from './Exsurge.Drawing'
+import { ChantLine } from './Exsurge.Chant.ChantLine'
+import { AccidentalType } from './Exsurge.Chant.Signs'
+import { MarkingPositionHint, HorizontalEpisemaAlignment, HorizontalEpisema } from './Exsurge.Chant.Markings'
+import { Gabc } from './Exsurge.Gabc'
 
 export var LiquescentType = {
   None: 0,
@@ -75,10 +74,25 @@ export var NoteShapeModifiers = {
  */
 export class Note extends ChantLayoutElement {
 
+  pitch: any;
+  glyphVisualizer: any;
+  staffPosition: number;
+  liquescent: any;
+  shape: any;
+  shapeModifiers: any;
+  neume: any;
+  epismata: any[];
+  morae: any;
+  // set on the note only when needed (by Exsurge.Gabc.ts), otherwise left undefined
+  ictus: any;
+  acuteAccent: any;
+  braceStart: any;
+  braceEnd: any;
+
   /**
    * @para {Pitch} pitch
    */
-  constructor(pitch) {
+  constructor(pitch?) {
     super();
 
     if (typeof pitch !== 'undefined')
@@ -133,9 +147,9 @@ export class Note extends ChantLayoutElement {
   // a utility function for modifiers
   shapeModifierMatches(shapeModifier) {
     if (shapeModifier === NoteShapeModifiers.None)
-      return this.shapeModifier === NoteShapeModifiers.None;
+      return this.shapeModifiers === NoteShapeModifiers.None;
     else
-      return this.shapeModifier & shapeModifier !== 0;
+      return (this.shapeModifiers & shapeModifier) !== 0;
   }
 
   draw(ctxt) {
@@ -156,7 +170,13 @@ export class Note extends ChantLayoutElement {
 
 export class Clef extends ChantNotationElement {
 
-  constructor(staffPosition, octave, defaultAccidental = null) {
+  isClef: boolean;
+  staffPosition: any;
+  octave: any;
+  defaultAccidental: any;
+  activeAccidental: any;
+
+  constructor(staffPosition, octave, defaultAccidental: any = null) {
     super();
 
     this.isClef = true;
@@ -203,7 +223,9 @@ export class Clef extends ChantNotationElement {
 
 export class DoClef extends Clef {
 
-  constructor(staffPosition, octave, defaultAccidental = null) {
+  leadingSpace: number;
+
+  constructor(staffPosition, octave, defaultAccidental: any = null) {
     super(staffPosition, octave, defaultAccidental);
 
     this.leadingSpace = 0.0;
@@ -246,7 +268,10 @@ var __defaultDoClef = new DoClef(1, 2);
 
 export class FaClef extends Clef {
 
-  constructor(staffPosition, octave, defaultAccidental = null) {
+  octave: any;
+  leadingSpace: number;
+
+  constructor(staffPosition, octave, defaultAccidental: any = null) {
     super(staffPosition, octave, defaultAccidental);
 
     this.octave = octave;
@@ -311,7 +336,10 @@ export class TextOnly extends ChantNotationElement {
 
 export class ChantLineBreak extends ChantNotationElement {
 
-  constructor(justify) {
+  justify: any;
+  declare bounds: Rect;
+
+  constructor(justify?) {
     super();
 
     this.justify = justify;
@@ -336,6 +364,9 @@ export class ChantLineBreak extends ChantNotationElement {
 // mapped to exsurge notations.
 export class ChantMapping {
 
+  source: any;
+  notations: any;
+
   // source can be any object type. in the case of gabc, source is a text
   // string that maps to a gabc word (e.g.: "no(g)bis(fg)").
   // notations is an array of ChantNotationElements
@@ -351,8 +382,21 @@ export class ChantMapping {
  */
 export class ChantScore {
 
+  mappings: any;
+  lines: any[];
+  notes: any[];
+  startingClef: any;
+  useDropCap: any;
+  dropCap: any;
+  annotation: any;
+  compiled: boolean;
+  autoColoring: boolean;
+  needsLayout: boolean;
+  bounds: Rect;
+  notations: any[];
+
   // mappings is an array of ChantMappings.
-  constructor(ctxt, mappings = [], useDropCap) {
+  constructor(ctxt, mappings: any[] = [], useDropCap) {
 
     this.mappings = mappings;
 
@@ -570,7 +614,7 @@ export class ChantScore {
 
     // create defs section
     for (var def in ctxt.defs)
-      if (ctxt.defs.hasOwnProperty(def))
+      if (Object.prototype.hasOwnProperty.call(ctxt.defs, def))
         fragment += ctxt.defs[def];
 
     fragment = QuickSvg.createFragment('defs', {}, fragment);
@@ -591,39 +635,11 @@ export class ChantScore {
 
     return fragment;
   }
-
-  unserializeFromJson(data) {
-    this.autoColoring = data['auto-coloring'];
-
-    if (data.annotation !== null && data.annotation !== "") {
-      // create the annotation
-      this.annotation = new Annotation(ctxt, data.annotation);
-    } else
-      this.annotation = null;
-
-    var createDropCap = data['drop-cap'] === 'auto' ? true : false;
-
-    Gabc.parseChantNotations(data.notations, this, createDropCap);
-  }
-
-  serializeToJson() {
-    var data = {};
-
-    data['type'] = "score";
-    data['auto-coloring'] = true;
-
-    if (this.annotation !== null)
-      data.annotation = this.annotation.unsanitizedText;
-    else
-      data.annotation = "";
-
-    
-
-    return data;
-  }
 }
 
 export class ChantDocument {
+
+  scores: any;
   constructor() {
 
     var defaults = {
@@ -670,32 +686,4 @@ export class ChantDocument {
     };
   }
 
-  unserializeFromJson(data) {
-
-    this.copyLayout(this, data);
-
-    this.scores = [];
-
-    // read in the scores
-    for (var i = 0; i < data.scores.length; i++) {
-      var score = new ChantScore();
-
-      score.unserializeFromJson(data.scores[i]);
-      this.scores.push(score);
-    }
-  }
-
-  serializeToJson() {
-    var data = {};
-
-    this.copyLayout(data, this);
-
-    data.scores = [];
-
-    // save scores...
-    for (var i = 0; i < this.scores.length; i++)
-      data.scores.push(this.scores[i].serializeToJson());
-
-    return data;
-  }
 }

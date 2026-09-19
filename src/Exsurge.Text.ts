@@ -1,4 +1,4 @@
-﻿//
+//
 // Author(s):
 // Fr. Matthew Spencer, OSJ <mspencer@osjusa.org>
 //
@@ -23,13 +23,21 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
+export type Word = string[];
+
+export interface VowelSegment {
+  found: boolean;
+  startIndex: number;
+  length: number;
+}
 
 /**
  * @class
  */
-export class Language {
-  constructor(name) {
+export abstract class Language {
+  name: string;
+
+  constructor(name?: string) {
     this.name = (typeof name !== 'undefined') ? name : "<unknown>";
   }
 
@@ -37,9 +45,9 @@ export class Language {
    * @param {String} text The string to parsed into words.
    * @return {Word[]} the resulting parsed words from syllabification
    */
-  syllabify(text) {
+  syllabify(text: string): Word[] {
 
-    var parsedWords = [];
+    var parsedWords: Word[] = [];
 
     if (typeof text === 'undefined' || text === "")
       return parsedWords;
@@ -52,12 +60,21 @@ export class Language {
 
     return parsedWords;
   }
+
+  abstract syllabifyWord(word: string): Word;
 }
 
 /**
  * @class
  */
 export class Latin extends Language {
+
+  diphthongs: string[];
+  possibleDiphthongs: string[];
+  vowels: string[];
+  vowelsThatMightBeConsonants: string[];
+  muteConsonantsAndF: string[];
+  liquidConsonants: string[];
 
   /**
    * @constructs
@@ -71,7 +88,7 @@ export class Latin extends Language {
     this.possibleDiphthongs = this.diphthongs.concat(["ei", "eu", "ui", "éi", "éu", "úi"]);
 
     // some words that are simply exceptions to standard syllabification rules!
-    var wordExceptions = new Object();
+    var wordExceptions: Record<string, string[]> = {};
 
     // ui combos pronounced as diphthongs
     wordExceptions["huius"] = ["hui", "us"];
@@ -79,7 +96,7 @@ export class Latin extends Language {
     wordExceptions["huic"] = ["huic"];
     wordExceptions["cui"] = ["cui"];
     wordExceptions["hui"] = ["hui"];
-    
+
     // eu combos pronounced as diphthongs
     wordExceptions["euge"] = ["eu", "ge"];
     wordExceptions["seu"] = ["seu"];
@@ -98,7 +115,7 @@ export class Latin extends Language {
   }
 
   // c must be lowercase!
-  isVowel(c) {
+  isVowel(c: string): boolean {
     for (var i = 0, end = this.vowels.length; i < end; i++)
       if (this.vowels[i] === c)
         return true;
@@ -106,16 +123,16 @@ export class Latin extends Language {
     return false;
   }
 
-  isVowelThatMightBeConsonant(c) {
+  isVowelThatMightBeConsonant(c: string): boolean {
     for (var i = 0, end = this.vowelsThatMightBeConsonants.length; i < end; i++)
       if (this.vowelsThatMightBeConsonants[i] === c)
         return true;
 
     return false;
   }
-  
+
   // substring should be a vowel and the character following
-  isVowelActingAsConsonant(substring) {
+  isVowelActingAsConsonant(substring: string): boolean {
     return this.isVowelThatMightBeConsonant(substring[0]) && this.isVowel(substring[1]);
   }
 
@@ -126,7 +143,7 @@ export class Latin extends Language {
    * @param {String} c The character to test; must be lowercase
    * @return {boolean} true if c is an f or a mute consonant
    */
-  isMuteConsonantOrF(c) {
+  isMuteConsonantOrF(c: string): boolean {
     for (var i = 0, end = this.muteConsonantsAndF.length; i < end; i++)
       if (this.muteConsonantsAndF[i] === c)
         return true;
@@ -139,7 +156,7 @@ export class Latin extends Language {
    * @param {String} c The character to test; must be lowercase
    * @return {boolean} true if c is a liquid consonant
    */
-  isLiquidConsonant(c) {
+  isLiquidConsonant(c: string): boolean {
     for (var i = 0, end = this.liquidConsonants.length; i < end; i++)
       if (this.liquidConsonants[i] === c)
         return true;
@@ -152,7 +169,7 @@ export class Latin extends Language {
    * @param {String} s The string to test; must be lowercase
    * @return {boolean} true if s is a diphthong
    */
-  isDiphthong(s) {
+  isDiphthong(s: string): boolean {
     for (var i = 0, end = this.diphthongs.length; i < end; i++)
       if (this.diphthongs[i] === s)
         return true;
@@ -165,7 +182,7 @@ export class Latin extends Language {
    * @param {String} s The string to test; must be lowercase
    * @return {boolean} true if s is a diphthong
    */
-  isPossibleDiphthong(s) {
+  isPossibleDiphthong(s: string): boolean {
     for (var i = 0, end = this.possibleDiphthongs.length; i < end; i++)
       if (this.possibleDiphthongs[i] === s)
         return true;
@@ -193,17 +210,17 @@ export class Latin extends Language {
    *      architectus, ar-chi-tec-tus; loquacem, lo-qua-cem.
    *
    */
-  syllabifyWord(word) {
-    var syllables = [];
+  syllabifyWord(word: string): Word {
+    var syllables: string[] = [];
     var haveCompleteSyllable = false;
     var previousWasVowel = false;
     var workingString = word.toLowerCase();
     var startSyllable = 0;
 
-    var c, lookahead, haveLookahead;
+    var c: string, lookahead: string, haveLookahead: boolean;
 
     // a helper function to create syllables
-    var makeSyllable = function (length) {
+    var makeSyllable = function (length: number) {
       if (haveCompleteSyllable) {
         syllables.push(word.substr(startSyllable, length));
         startSyllable += length;
@@ -295,9 +312,9 @@ export class Latin extends Language {
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
    * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
    */
-  findVowelSegment(s, startIndex) {
+  findVowelSegment(s: string, startIndex: number): VowelSegment {
 
-    var i, end, index;
+    var i: number, end: number, index: number;
     var workingString = s.toLowerCase();
 
     // do we have a diphthong?
@@ -334,6 +351,12 @@ export class Latin extends Language {
  */
 export class Spanish extends Language {
 
+  vowels: string[];
+  weakVowels: string[];
+  strongVowels: string[];
+  diphthongs: string[];
+  uDiphthongExceptions: string[];
+
   constructor() {
     super("Spanish");
 
@@ -353,7 +376,7 @@ export class Spanish extends Language {
   }
 
   // c must be lowercase!
-  isVowel(c) {
+  isVowel(c: string): boolean {
     for (var i = 0, end = this.vowels.length; i < end; i++)
       if (this.vowels[i] === c)
         return true;
@@ -365,7 +388,7 @@ export class Spanish extends Language {
    * @param {String} c The character to test; must be lowercase
    * @return {boolean} true if c is an f or a mute consonant
    */
-  isWeakVowel(c) {
+  isWeakVowel(c: string): boolean {
     for (var i = 0, end = this.weakVowels.length; i < end; i++)
       if (this.weakVowels[i] === c)
         return true;
@@ -377,7 +400,7 @@ export class Spanish extends Language {
    * @param {String} c The character to test; must be lowercase
    * @return {boolean} true if c is an f or a mute consonant
    */
-  isStrongVowel(c) {
+  isStrongVowel(c: string): boolean {
     for (var i = 0, end = this.strongVowels.length; i < end; i++)
       if (this.strongVowels[i] === c)
         return true;
@@ -390,7 +413,7 @@ export class Spanish extends Language {
    * @param {String} s The string to test; must be lowercase
    * @return {boolean} true if s is a diphthong
    */
-  isDiphthong(s) {
+  isDiphthong(s: string): boolean {
     for (var i = 0, end = this.diphthongs.length; i < end; i++)
       if (this.diphthongs[i] === s)
         return true;
@@ -398,38 +421,15 @@ export class Spanish extends Language {
     return false;
   }
 
-  createSyllable(text) {
-
-/*
-    var accented = false;
-    var ellidesToNext = false;
-
-    if (text.length > 0) {
-        
-        if (text[0] == '`') {
-            accented = true;
-            text = text.substr(1);
-        }
-
-        if (text[text.length - 1] == '_') {
-            ellidesToNext = true;
-            text = text.substr(0, text.length - 1);
-        }
-    }
-
-    var s = new Syllable(text);
-
-    s.isMusicalAccent = accented;
-    s.elidesToNext = ellidesToNext;*/
-
+  createSyllable(text: string): string {
     return text;
   }
 
   /**
    */
-  syllabifyWord(word) {
+  syllabifyWord(word: string): Word {
 
-    var syllables = [];
+    var syllables: string[] = [];
 
     var haveCompleteSyllable = false;
     var previousIsVowel = false;
@@ -437,6 +437,8 @@ export class Spanish extends Language {
     var startSyllable = 0;
 
     // fixme: first check for prefixes
+
+    var i: number, j: number;
 
     for (i = 0; i < word.length; i++) {
 
@@ -545,9 +547,9 @@ export class Spanish extends Language {
    * @param {Number} startIndex The index at which to start searching for a vowel in the string
    * @retuns a custom class with three properties: {found: (true/false) startIndex: (start index in s of vowel segment) length ()}
    */
-  findVowelSegment(s, startIndex) {
+  findVowelSegment(s: string, startIndex: number): VowelSegment {
 
-    var i, end, index;
+    var i: number, end: number, index: number, j: number, endj: number;
     var workingString = s.toLowerCase();
 
     // do we have a diphthongs?
@@ -561,7 +563,7 @@ export class Spanish extends Language {
         if (d[0] === 'u' && index > 0) {
           var tripthong = s.substr(index - 1, 3).toLowerCase();
 
-          for (j = 0, endj = this.uDiphthongExceptions.length; i < endj; j++) {
+          for (j = 0, endj = this.uDiphthongExceptions.length; j < endj; j++) {
             if (tripthong === this.uDiphthongExceptions[j]) {
               // search from after the u...
               return this.findVowelSegment(s, index + 1);

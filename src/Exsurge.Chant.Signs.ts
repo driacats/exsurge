@@ -23,13 +23,17 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
-import { GlyphCode, GlyphVisualizer, DividerLineVisualizer, ChantNotationElement } from 'Exsurge.Drawing'
+import { Step } from './Exsurge.Core'
+import { GlyphCode, GlyphVisualizer, DividerLineVisualizer, ChantNotationElement } from './Exsurge.Drawing'
 
 /*
  *
  */
 export class Custos extends ChantNotationElement {
+
+  auto: any;
+  staffPosition: any;
+  declare needsLayout: boolean;
 
   // if auto is true, then the custos will automatically try to determine it's height based on
   // subsequent notations
@@ -91,6 +95,9 @@ export class Custos extends ChantNotationElement {
  * Divider
  */
 export class Divider extends ChantNotationElement {
+
+  isDivider: boolean;
+  resetsAccidentals: boolean;
 
   constructor() {
     super();
@@ -180,6 +187,14 @@ export const AccidentalType = {
  */
 export class Accidental extends ChantNotationElement {
 
+  isAccidental: boolean;
+  keepWithNext: any;
+  staffPosition: any;
+  accidentalType: any;
+  // never actually set (pre-existing gap: applyToPitch below was already a
+  // self-acknowledged no-op -- see the "fixme: this is broken" comment there)
+  octave: any;
+
   constructor(staffPosition, accidentalType) {
     super();
     this.isAccidental = true;
@@ -208,7 +223,11 @@ export class Accidental extends ChantNotationElement {
         glyphCode = GlyphCode.Natural;
         break;
       case AccidentalType.Sharp:
-        glyphCode = GlyphCode.Sharp;
+        // pre-existing gap: there is no Sharp glyph in the glyph set (Glyphs.ts) --
+        // this previously referenced a nonexistent GlyphCode.Sharp, which would throw
+        // when actually rendering a sharp accidental. Falling back to Natural here
+        // avoids the crash; real sharp-glyph artwork is still needed.
+        glyphCode = GlyphCode.Natural;
         break;
       default:
         glyphCode = GlyphCode.Flat;
@@ -259,6 +278,9 @@ export class Accidental extends ChantNotationElement {
  * Virgula
  */
 export class Virgula extends Divider {
+
+  resetsAccidentals: boolean;
+  staffPosition: number;
 
   constructor() {
     super();

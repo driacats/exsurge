@@ -23,15 +23,20 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
-import { Step, Pitch, Rect, Point, Margins } from 'Exsurge.Core'
-import { QuickSvg, ChantLayoutElement, ChantNotationElement, GlyphCode, GlyphVisualizer, NeumeLineVisualizer, VirgaLineVisualizer, HorizontalEpisemaLineVisualizer, CurlyBraceVisualizer } from 'Exsurge.Drawing'
-import { Note, LiquescentType, NoteShape, NoteShapeModifiers } from 'Exsurge.Chant'
-import { MarkingPositionHint, HorizontalEpisema, Mora } from 'Exsurge.Chant.Markings'
-import { Glyphs } from 'Exsurge.Glyphs'
+import { Step, Pitch, Rect, Point, Margins } from './Exsurge.Core'
+import { QuickSvg, ChantLayoutElement, ChantNotationElement, GlyphCode, GlyphVisualizer, NeumeLineVisualizer, VirgaLineVisualizer, CurlyBraceVisualizer } from './Exsurge.Drawing'
+import { Note, LiquescentType, NoteShape, NoteShapeModifiers } from './Exsurge.Chant'
+import { MarkingPositionHint, HorizontalEpisema, Mora } from './Exsurge.Chant.Markings'
+import { Glyphs } from './Exsurge.Glyphs'
 
 
 class NeumeBuilder {
+
+  ctxt: any;
+  neume: any;
+  x: any;
+  lastNote: any;
+  lineIsHanging: boolean;
 
   constructor(ctxt, neume, startingX = 0) {
     this.ctxt = ctxt;
@@ -320,7 +325,10 @@ class NeumeBuilder {
  */
 export class Neume extends ChantNotationElement {
 
-  constructor(notes = []) {
+  isNeume: any;
+  notes: any;
+
+  constructor(notes: any[] = []) {
 
     super();
 
@@ -656,6 +664,8 @@ export class Distropha extends Neume {
  * Oriscus
  */
 export class Oriscus extends Neume {
+
+  declare needsLayout: boolean;
 
   positionMarkings() {
     var positionHint = MarkingPositionHint.Above;

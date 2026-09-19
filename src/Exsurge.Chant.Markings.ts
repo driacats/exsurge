@@ -23,9 +23,8 @@
 // THE SOFTWARE.
 //
 
-import * as Exsurge from 'Exsurge.Core'
-import { QuickSvg, ChantLayoutElement, GlyphCode, GlyphVisualizer } from 'Exsurge.Drawing'
-import { Note, NoteShape } from 'Exsurge.Chant'
+import { QuickSvg, ChantLayoutElement, GlyphCode, GlyphVisualizer } from './Exsurge.Drawing'
+import { Note, NoteShape } from './Exsurge.Chant'
 
 
 // for positioning markings on notes
@@ -36,6 +35,9 @@ export var MarkingPositionHint = {
 };
 
 export class AcuteAccent extends GlyphVisualizer {
+
+  note: any;
+  positionHint: any;
 
   constructor(ctxt, note) {
     super(ctxt, GlyphCode.AcuteAccent);
@@ -68,6 +70,11 @@ export var HorizontalEpisemaAlignment = {
  * A horizontal episema marking is it's own visualizer (that is, it implements createSvgFragment)
  */
 export class HorizontalEpisema extends ChantLayoutElement {
+
+  note: any;
+  positionHint: any;
+  terminating: any;
+  alignment: any;
 
   constructor(note) {
     super();
@@ -162,6 +169,9 @@ export class HorizontalEpisema extends ChantLayoutElement {
  */
 export class Ictus extends GlyphVisualizer {
 
+  note: any;
+  positionHint: any;
+
   constructor(ctxt, note) {
     super(ctxt, GlyphCode.VerticalEpisemaAbove);
     this.note = note;
@@ -215,6 +225,9 @@ export class Ictus extends GlyphVisualizer {
  */
 export class Mora extends GlyphVisualizer {
 
+  note: any;
+  positionHint: any;
+
   constructor(ctxt, note) {
     super(ctxt, GlyphCode.Mora);
     this.note = note;
@@ -263,6 +276,11 @@ export var BraceAttachment = {
 
 
 export class BracePoint extends ChantLayoutElement {
+
+  note: any;
+  isAbove: any;
+  shape: any;
+  attachment: any;
 
   constructor(note, isAbove, shape, attachment) {
     super();
