@@ -971,6 +971,157 @@ var __subsForTspans = {
   ">": "&gt;"
 };
 
+// --- gabc text markup -------------------------------------------------------
+//
+// Gregorio-style gabc files (e.g. everything downloaded from GregoBase) mark up
+// their lyric text with XML-like tags rather than exsurge's own *_^% symbols:
+//
+//   <b>..</b> bold, <i>..</i> italic, <c>..</c> rubric red, <sc>..</sc> small caps,
+//   <ul>..</ul> underline, <tt>..</tt> monospace, <e>..</e> elision (italic)
+//   <sp>X</sp>  special characters: V/ R/ A/ (versicle/response/antiphon signs),
+//               'ae 'æ 'oe 'œ ae oe (ligatures), * + (rubric asterisk / cross)
+//   <v>..</v>   verbatim TeX for gregorio -- meaningless here, dropped
+//   <alt>..</alt> text printed above the staff -- not supported yet, dropped
+//   <eu>, </eu>, <nlba>, </nlba>, <clear>, <pr>, ... layout hints -- dropped
+//
+// Unknown tags are dropped (their content is kept), so no raw "<...>" ever
+// reaches the rendered score.
+
+// tags whose content is never rendered
+const __gabcSkippedContentTags = ['v', 'alt', 'nv', 'gr', 'verb'];
+
+const __gabcStyleTagProperties: Record<string, string> = {
+  b: 'font-weight:bold;',
+  i: 'font-style:italic;',
+  e: 'font-style:italic;',
+  c: 'fill:#f00;', // same rubric red exsurge uses for its own ^red^ markup
+  sc: "font-variant:small-caps;font-feature-settings:'smcp';-webkit-font-feature-settings:'smcp';",
+  ul: 'text-decoration:underline;',
+  tt: 'font-family:monospace;'
+};
+
+// <sp> contents that map to a plain character
+const __gabcSpecialCharacters: Record<string, string> = {
+  "'ae": 'ǽ', "'æ": 'ǽ', "'AE": 'Ǽ', "'Æ": 'Ǽ',
+  "'oe": 'œ́', "'œ": 'œ́', "'OE": 'Œ́', "'Œ": 'Œ́',
+  'ae': 'æ', 'AE': 'Æ', 'oe': 'œ', 'OE': 'Œ',
+  '-': '-'
+};
+
+// <sp> contents rendered in rubric red
+const __gabcRubricSpecialCharacters: Record<string, string> = {
+  '*': '*', '+': '†'
+};
+
+// <sp> contents rendered with the ℣/℟/A glyphs of the Exsurge Characters font
+// (the same glyphs exsurge's own "V/." markup produces)
+const __gabcSignSpecialCharacters: Record<string, string> = {
+  'V/': 'V.', 'R/': 'R.', 'A/': 'A.', 'v/': 'V.', 'r/': 'R.', 'a/': 'A.'
+};
+
+const __gabcSignProperties = "font-family:'Exsurge Characters';fill:#f00;";
+
+const __gabcTagRegex = /<(\/?)([a-zA-Z]+)(?::[^>]*)?>/g;
+
+/** True if the text contains gregorio-style <tag> markup. */
+export function hasGabcTextMarkup(text: string): boolean {
+  __gabcTagRegex.lastIndex = 0;
+  return typeof text === 'string' && __gabcTagRegex.test(text);
+}
+
+/**
+ * Parses gregorio-style tag markup into styled runs. Returns an array of
+ * {text, properties} pairs; never returns raw tags in the run text.
+ */
+export function parseGabcTextMarkup(text: string): { text: string, properties: string }[] {
+  const runs: { text: string, properties: string }[] = [];
+  const styleStack: string[] = [];
+  let skipDepth = 0;   // inside <v>, <alt>, ...
+  let inSpecial = false;
+  let special = '';
+  let last = 0;
+  // the sign glyphs already include their period, and gabc writes one after
+  // the tag ("<sp>V/</sp>."): swallow it so we don't print "℣.."
+  let swallowPeriod = false;
+
+  const currentProperties = () =>
+    styleStack.map(tag => __gabcStyleTagProperties[tag] ?? '').join('');
+
+  const pushRun = (runText: string, extraProperties = '') => {
+    if (runText === '')
+      return;
+    runs.push({ text: runText, properties: currentProperties() + extraProperties });
+  };
+
+  const emitText = (chunk: string) => {
+    if (skipDepth > 0 || chunk === '')
+      return;
+    if (swallowPeriod && !inSpecial) {
+      swallowPeriod = false;
+      if (chunk[0] === '.')
+        chunk = chunk.substring(1);
+      if (chunk === '')
+        return;
+    }
+    if (inSpecial)
+      special += chunk;
+    else
+      pushRun(chunk);
+  };
+
+  const emitSpecial = (content: string) => {
+    if (content in __gabcSignSpecialCharacters) {
+      pushRun(__gabcSignSpecialCharacters[content], __gabcSignProperties);
+      swallowPeriod = true;
+    }
+    else if (content in __gabcRubricSpecialCharacters)
+      pushRun(__gabcRubricSpecialCharacters[content], 'fill:#f00;');
+    else if (content in __gabcSpecialCharacters)
+      pushRun(__gabcSpecialCharacters[content]);
+    else
+      pushRun(content); // unknown special: show its content as-is
+  };
+
+  __gabcTagRegex.lastIndex = 0;
+  let match: RegExpExecArray | null;
+  while ((match = __gabcTagRegex.exec(text))) {
+    emitText(text.substring(last, match.index));
+    last = match.index + match[0].length;
+
+    const closing = match[1] === '/';
+    const tag = match[2].toLowerCase();
+
+    if (__gabcSkippedContentTags.indexOf(tag) >= 0) {
+      skipDepth = closing ? Math.max(0, skipDepth - 1) : skipDepth + 1;
+    } else if (skipDepth > 0) {
+      continue;
+    } else if (tag === 'sp') {
+      if (closing && inSpecial) {
+        inSpecial = false;
+        emitSpecial(special);
+      } else if (!closing) {
+        inSpecial = true;
+        special = '';
+      }
+    } else if (tag in __gabcStyleTagProperties) {
+      if (!closing) {
+        styleStack.push(tag);
+      } else {
+        const index = styleStack.lastIndexOf(tag);
+        if (index >= 0)
+          styleStack.splice(index, 1);
+      }
+    }
+    // any other tag (eu, nlba, clear, pr, ...) is a layout hint: drop it
+  }
+
+  emitText(text.substring(last));
+  if (inSpecial)
+    emitSpecial(special); // unclosed <sp>: still don't lose the content
+
+  return runs;
+}
+
 export class TextElement extends ChantLayoutElement {
 
   fontFamily: any;
@@ -1009,6 +1160,16 @@ export class TextElement extends ChantLayoutElement {
     // save ourselves a lot of grief for a very common text:
     if (text === "*" || text === "†") {
       this.spans.push(new TextSpan(text));
+      return;
+    }
+
+    // gregorio-style <tag> markup (GregoBase files) takes precedence over
+    // exsurge's own *_^% markup, whose symbols are literal text in such files
+    if (hasGabcTextMarkup(text)) {
+      for (const run of parseGabcTextMarkup(text)) {
+        this.text += run.text;
+        this.spans.push(new TextSpan(run.text, run.properties));
+      }
       return;
     }
 
@@ -1238,7 +1399,7 @@ export class Lyric extends TextElement {
     // centerLength is how many characters comprise the center point.
     // performLayout will do the processing
     this.centerStartIndex = -1;
-    this.centerLength = text.length;
+    this.centerLength = this.text.length; // plain text, without any markup tags
 
     this.needsConnector = false;
 
@@ -1350,17 +1511,22 @@ export class Lyric extends TextElement {
 
   generateDropCap(ctxt) {
 
-     var dropCap = new DropCap(ctxt, this.originalText.substring(0, 1));
+    // with gregorio-style markup the tags would end up split by the substring
+    // calls below, so work on the plain text instead (its styling is lost, which
+    // is fine for the first syllable of a chant)
+    var sourceText = hasGabcTextMarkup(this.originalText) ? this.text : this.originalText;
+
+    var dropCap = new DropCap(ctxt, sourceText.substring(0, 1));
 
     // if the dropcap is a single character syllable (vowel) that is the
     // beginning of the word, then we use a hyphen in place of the lyric text
     // and treat it as a single syllable.
-    if (this.originalText.length === 1) {
+    if (sourceText.length === 1) {
       this.generateSpansFromText(ctxt, ctxt.syllableConnector);
       this.centerStartIndex = -1;
       this.lyricType = LyricType.SingleSyllable;
     } else {
-      this.generateSpansFromText(ctxt, this.originalText.substring(1));
+      this.generateSpansFromText(ctxt, sourceText.substring(1));
       this.centerStartIndex--; // lost a letter, so adjust centering accordingly
     }
 
