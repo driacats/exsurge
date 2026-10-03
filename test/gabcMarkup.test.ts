@@ -76,3 +76,14 @@ describe('rendering gabc with gregorio markup', () => {
     expect(svg).not.toMatch(/&lt;|<\/?b>/);
   });
 });
+
+describe('explicit custos', () => {
+  it('takes its height from its own pitch letter, even after a bar', () => {
+    const ctxt = new ChantContext();
+    const mappings = Gabc.createMappingsFromSource(ctxt, '(c4) a(d.) (::h+Z) b(h)');
+    const custos = mappings.flatMap((m: any) => m.notations).find((n: any) => n.constructor.name === 'Custos' && !n.auto);
+    // "h" is the third line in c4: exsurge staff position 0 (the middle line)
+    expect(custos.staffPosition).toBe(Gabc.gabcHeightToExsurgeHeight('h'));
+    expect(Number.isFinite(custos.staffPosition)).toBe(true);
+  });
+});

@@ -511,7 +511,9 @@ export class Gabc {
             // custos
             var custos = new Signs.Custos();
 
-            custos.staffPosition = this.gabcHeightToExsurgeHeight(data[0]);
+            // the pitch letter of this atom (e.g. "h" in "h+"), not the first
+            // character of the whole notation string
+            custos.staffPosition = this.gabcHeightToExsurgeHeight(atom[0]);
 
             addNotation(custos);
 
