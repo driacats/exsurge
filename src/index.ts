@@ -48,7 +48,10 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       const ctxt = new ChantContext();
       this.#ctxt = ctxt;
 
-      ctxt.lyricTextFont = "'Crimson Text', serif";
+      // the lyric font can be set from CSS with --chant-lyric-font
+      const cssFont = getComputedStyle(this).getPropertyValue('--chant-lyric-font').trim();
+      // (double quotes would break the SVG style attributes exsurge writes)
+      ctxt.lyricTextFont = cssFont.replace(/"/g, "'") || "'Crimson Text', serif";
       ctxt.lyricTextSize *= 1.2;
       ctxt.dropCapTextFont = ctxt.lyricTextFont;
       ctxt.annotationTextFont = ctxt.lyricTextFont;
@@ -67,6 +70,13 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
         score.annotation = new Annotation(ctxt, annotationAttr);
 
       this.#layout();
+
+      // text is measured with the lyric font: lay out again once it has loaded,
+      // otherwise the spacing is computed with the fallback font
+      document.fonts?.load(`${ctxt.lyricTextSize}px ${ctxt.lyricTextFont}`).then(() => {
+        this.#lastWidth = 0;
+        this.#layout();
+      }, () => { /* keep the fallback layout */ });
 
       this.#resizeObserver = new ResizeObserver(() => this.#layout());
       if (this.parentElement)
