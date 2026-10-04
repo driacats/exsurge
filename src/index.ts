@@ -31,7 +31,9 @@ import { Gabc } from './Exsurge.Gabc';
 
 // client side support: a <chant-visual> custom element (Custom Elements v1) that
 // renders its text content as gabc notation, laid out as SVG, and relayouts
-// whenever its containing element is resized.
+// whenever its containing element is resized. The gabc is never shown as text:
+// until the score is drawn the element is empty and has no `rendered`
+// attribute, so a page can show a placeholder with chant-visual:not([rendered]).
 //
 //   <chant-visual use-drop-cap="false" annotation="IV">
 //     (c3) PU(ei)ER(i) *() na(iji)tus(h) est(hhh) ...
@@ -55,11 +57,23 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
     #resizeObserver: ResizeObserver | null = null;
     #lastWidth = 0;
     #source = '';
+    /** false until the lyric font has loaded (or we gave up waiting for it) */
+    #fontReady = false;
+    #busy = false;
+    #again = false;
 
     /** The gabc the element was created with (its text content before rendering). */
     get source(): string { return this.#source; }
 
     connectedCallback(): void {
+      // moved to another place in the page: keep the score, lay it out again
+      if (this.#score) {
+        this.#observe();
+        this.#lastWidth = 0;
+        this.#layout();
+        return;
+      }
+
       const ctxt = new ChantContext();
       this.#ctxt = ctxt;
 
@@ -71,13 +85,14 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       ctxt.dropCapTextFont = ctxt.lyricTextFont;
       ctxt.annotationTextFont = ctxt.lyricTextFont;
 
-      // capture the gabc source from the element's original text content
-      // before we start overwriting innerHTML with the rendered SVG
-      const gabcSource = this.textContent ?? '';
-      this.#source = gabcSource;
+      // the text content is the gabc source: keep it, but never show it as text
+      // while the score is being laid out
+      this.#source = this.textContent ?? '';
+      this.textContent = '';
+      this.setAttribute('aria-busy', 'true');
 
       const useDropCap = this.getAttribute('use-drop-cap') !== 'false';
-      const mappings = Gabc.createMappingsFromSource(ctxt, gabcSource);
+      const mappings = Gabc.createMappingsFromSource(ctxt, this.#source);
       const score = new ChantScore(ctxt, mappings, useDropCap);
       this.#score = score;
 
@@ -85,18 +100,22 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       if (annotationAttr)
         score.annotation = new Annotation(ctxt, annotationAttr);
 
-      this.#layout();
-
-      // text is measured with the lyric font: lay out again once it has loaded,
-      // otherwise the spacing is computed with the fallback font
-      document.fonts?.load(`${ctxt.lyricTextSize}px ${ctxt.lyricTextFont}`).then(() => {
+      // the lyrics are measured with the lyric font: wait for it before the
+      // first layout (a moment at most), so the score is drawn once and right
+      const fontLoaded = document.fonts?.load(`${ctxt.lyricTextSize}px ${ctxt.lyricTextFont}`) ?? Promise.resolve();
+      const giveUp = new Promise((resolve) => setTimeout(resolve, 1500));
+      Promise.race([fontLoaded, giveUp]).catch(() => { /* lay out with the fallback font */ }).then(() => {
+        this.#fontReady = true;
+        this.#layout();
+      });
+      // the font arrived after we gave up: lay out again with it
+      fontLoaded.then(() => {
+        if (!this.hasAttribute('rendered')) return;
         this.#lastWidth = 0;
         this.#layout();
       }, () => { /* keep the fallback layout */ });
 
-      this.#resizeObserver = new ResizeObserver(() => this.#layout());
-      if (this.parentElement)
-        this.#resizeObserver.observe(this.parentElement);
+      this.#observe();
     }
 
     /**
@@ -136,20 +155,48 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       this.#resizeObserver = null;
     }
 
+    #observe(): void {
+      this.#resizeObserver?.disconnect();
+      this.#resizeObserver = new ResizeObserver(() => this.#layout());
+      if (this.parentElement)
+        this.#resizeObserver.observe(this.parentElement);
+    }
+
+    /**
+     * Lays the score out for the width of the parent (nothing while it is hidden
+     * and has no width). One layout at a time: a resize during a layout is
+     * handled when it finishes. The first one sets the `rendered` attribute and
+     * fires a `chant-rendered` event.
+     */
     #layout(): void {
       const ctxt = this.#ctxt;
       const score = this.#score;
-      if (!ctxt || !score || !this.parentElement)
+      if (!ctxt || !score || !this.parentElement || !this.#fontReady)
         return;
+      if (this.#busy) {
+        this.#again = true;
+        return;
+      }
 
       const newWidth = this.parentElement.clientWidth;
-      if (newWidth === this.#lastWidth)
+      if (newWidth === 0 || newWidth === this.#lastWidth)
         return;
       this.#lastWidth = newWidth;
+      this.#busy = true;
 
       score.performLayoutAsync(ctxt, () => {
         score.layoutChantLines(ctxt, newWidth, () => {
           this.innerHTML = score.createSvg(ctxt);
+          this.#busy = false;
+          if (!this.hasAttribute('rendered')) {
+            this.setAttribute('rendered', '');
+            this.removeAttribute('aria-busy');
+            this.dispatchEvent(new Event('chant-rendered', { bubbles: true }));
+          }
+          if (this.#again) {
+            this.#again = false;
+            this.#layout();
+          }
         });
       });
     }

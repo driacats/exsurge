@@ -16,7 +16,8 @@ This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), por
 - Outputs SVG (or draws to a canvas), ready to insert in a page.
 - `<chant-visual>` custom element: put gabc inside the tag and it renders itself, relaying out when its container is resized.
 - Gregorio-style text markup in lyrics (`<i>`, `<b>`, `<sc>`, `<sp>V/</sp>`, `<c>`, `<v>`…), explicit custos, drop caps and annotations.
-- Lyric font taken from the CSS variable `--chant-lyric-font`.
+- Lyric font and rubric colour taken from the CSS variables `--chant-lyric-font` and `--chant-rubric-color`.
+- The gabc inside `<chant-visual>` is never shown as text: the element stays empty until the score is drawn, then gets the `rendered` attribute and fires `chant-rendered`, so a page can style a placeholder with `chant-visual:not([rendered])`.
 - `noteBoxes()` on `<chant-visual>` returns the position of every sung note, so an audio player can highlight the note being played.
 - Builds as ESM, CommonJS and a plain `<script>` global, with type declarations.
 

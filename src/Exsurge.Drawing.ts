@@ -39,6 +39,12 @@ import { Latin } from './Exsurge.Text'
 import __exsurgeCharactersFont from '../assets/fonts/ExsurgeChar.otf?inline';
 
 
+/**
+ * Fill of rubric text (directives, ℣ ℟ * †, <c>…</c>): red unless the page sets
+ * --chant-rubric-color (e.g. a softer red for a dark theme).
+ */
+export const RUBRIC_FILL = 'fill:var(--chant-rubric-color, #f00);';
+
 export const GlyphCode = {
 
   None: "None",
@@ -951,7 +957,7 @@ class MarkupStackFrame {
         properties = 'font-style:italic;';
         break;
       case redMarkup:
-        properties = 'fill:#f00;'; // SVG text color is set by the fill property
+        properties = RUBRIC_FILL; // SVG text color is set by the fill property
         break;
       case smallCapsMarkup:
         properties = "font-variant:small-caps;font-feature-settings:'smcp';-webkit-font-feature-settings:'smcp';";
@@ -994,7 +1000,7 @@ const __gabcStyleTagProperties: Record<string, string> = {
   b: 'font-weight:bold;',
   i: 'font-style:italic;',
   e: 'font-style:italic;',
-  c: 'fill:#f00;', // same rubric red exsurge uses for its own ^red^ markup
+  c: RUBRIC_FILL, // same rubric red exsurge uses for its own ^red^ markup
   sc: "font-variant:small-caps;font-feature-settings:'smcp';-webkit-font-feature-settings:'smcp';",
   ul: 'text-decoration:underline;',
   tt: 'font-family:monospace;'
@@ -1019,7 +1025,7 @@ const __gabcSignSpecialCharacters: Record<string, string> = {
   'V/': 'V.', 'R/': 'R.', 'A/': 'A.', 'v/': 'V.', 'r/': 'R.', 'a/': 'A.'
 };
 
-const __gabcSignProperties = "font-family:'Exsurge Characters';fill:#f00;";
+const __gabcSignProperties = "font-family:'Exsurge Characters';" + RUBRIC_FILL;
 
 const __gabcTagRegex = /<(\/?)([a-zA-Z]+)(?::[^>]*)?>/g;
 
@@ -1075,7 +1081,7 @@ export function parseGabcTextMarkup(text: string): { text: string, properties: s
       swallowPeriod = true;
     }
     else if (content in __gabcRubricSpecialCharacters)
-      pushRun(__gabcRubricSpecialCharacters[content], 'fill:#f00;');
+      pushRun(__gabcRubricSpecialCharacters[content], RUBRIC_FILL);
     else if (content in __gabcSpecialCharacters)
       pushRun(__gabcSpecialCharacters[content]);
     else
@@ -1207,7 +1213,7 @@ export class TextElement extends ChantLayoutElement {
       // non-matching symbols first
       if (markupSymbol === "A/." || markupSymbol === "R/." || markupSymbol === "V/." ||
           markupSymbol === "a/." || markupSymbol === "r/." || markupSymbol === "v/.") {
-        closeSpan(text[match.index] + ".", "font-family:'Exsurge Characters';fill:#f00;");
+        closeSpan(text[match.index] + ".", "font-family:'Exsurge Characters';" + RUBRIC_FILL);
       } else if (markupStack.length === 0) {
         // otherwise we're dealing with matching markup delimeters
         // if this is our first markup frame, then just create an inline for preceding text and push the stack frame
@@ -1547,7 +1553,7 @@ export class Lyric extends TextElement {
     var props = super.getExtraStyleProperties(ctxt);
 
     if (this.lyricType === LyricType.Directive && ctxt.autoColor === true)
-      props += "fill:#f00;";
+      props += RUBRIC_FILL;
 
     return props;
   }

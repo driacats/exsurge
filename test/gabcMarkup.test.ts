@@ -26,7 +26,7 @@ describe('parseGabcTextMarkup', () => {
 
   it('maps versicle, response and antiphon signs to the Exsurge Characters glyphs', () => {
     const runs = parseGabcTextMarkup('<sp>V/</sp>. Mit');
-    expect(runs[0]).toEqual({ text: 'V.', properties: "font-family:'Exsurge Characters';fill:#f00;" });
+    expect(runs[0]).toEqual({ text: 'V.', properties: "font-family:'Exsurge Characters';fill:var(--chant-rubric-color, #f00);" });
     expect(runs.map(r => r.text).join('')).toBe('V. Mit'); // the period after the tag is part of the glyph
     expect(parseGabcTextMarkup('<sp>R/</sp>')[0].text).toBe('R.');
   });
@@ -43,7 +43,7 @@ describe('parseGabcTextMarkup', () => {
       { text: 'pur', properties: '' },
       { text: 'a', properties: 'font-style:italic;' },
     ]);
-    expect(parseGabcTextMarkup('<c><b>T.P.</b></c>')[0].properties).toBe('fill:#f00;font-weight:bold;');
+    expect(parseGabcTextMarkup('<c><b>T.P.</b></c>')[0].properties).toBe('fill:var(--chant-rubric-color, #f00);font-weight:bold;');
   });
 
   it('drops verbatim TeX, layout hints and unknown tags', () => {
