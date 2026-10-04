@@ -1,6 +1,12 @@
-# exsurge
+<p align="center">
+  <img src="assets/logo-exsurge.svg" alt="exsurge logo" width="96">
+</p>
 
-A TypeScript library that renders Gregorian chant in square-note notation, from gabc to SVG, directly in the browser.
+<h1 align="center">exsurge</h1>
+
+<p align="center">A TypeScript library that renders Gregorian chant in square-note notation, from gabc to SVG, directly in the browser.</p>
+
+The logo is a pes, the neume of two rising notes: <em>exsurge</em> means "arise".
 
 This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), ported to TypeScript and a modern toolchain, and extended for [Clivis](https://github.com/driacats/mlg-breviary), the Liturgy of the Hours in Gregorian chant for the Movimento Liturgico Giovanile.
 
