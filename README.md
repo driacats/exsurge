@@ -1,96 +1,69 @@
 # exsurge
-A TypeScript/JavaScript library for rendering Gregorian Chant in square note notation
 
-## Synopsis
+A TypeScript library that renders Gregorian chant in square-note notation, from gabc to SVG, directly in the browser.
 
-exsurge allows developers to create SVG images of square note notation from gabc notation. These SVGs can then be inserted in the DOM or used for presentation purposes.
+This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), ported to TypeScript and a modern toolchain, and extended for the [Breviario MLG](https://github.com/driacats/mlg-breviary).
 
-## Live demo
+## Features
 
-Run the demo locally to see gabc code rendered to chant on the fly:
+- Parses [gabc](https://gregorio-project.github.io/gabc/) and lays the chant out in lines that fit the available width.
+- Outputs SVG (or draws to a canvas), ready to insert in a page.
+- `<chant-visual>` custom element: put gabc inside the tag and it renders itself, relaying out when its container is resized.
+- Gregorio-style text markup in lyrics (`<i>`, `<b>`, `<sc>`, `<sp>V/</sp>`, `<c>`, `<v>`…), explicit custos, drop caps and annotations.
+- Lyric font taken from the CSS variable `--chant-lyric-font`.
+- `noteBoxes()` on `<chant-visual>` returns the position of every sung note, so an audio player can highlight the note being played.
+- Builds as ESM, CommonJS and a plain `<script>` global, with type declarations.
 
+## Usage
+
+### As a custom element
+
+```html
+<script type="module">
+  import 'exsurge';
+</script>
+
+<chant-visual use-drop-cap="false" annotation="IV">
+  (c3) PU(ei)ER(i) *() na(iji)tus(h) est(hhh) no(ih/ji)bis,(i) (;)
+</chant-visual>
 ```
-npm install
-npm run dev
-```
 
-This opens a page with a live gabc editor and a `<chant-visual>` custom element example.
-
-## Code Example
-
-First, create a `ChantContext` which contains the settings for how the chant will be rendered:
+### From code
 
 ```javascript
 import { ChantContext, Gabc, ChantScore } from 'exsurge';
 
 const ctxt = new ChantContext();
-```
-
-Then, parse gabc code into mappings and build a `ChantScore`:
-
-```javascript
-const gabc = "(f3) EC(ce!fg)CE(f) *(,) ad(fe~)vé(f!gwhf)nit(f) (,)";
+const gabc = '(f3) EC(ce!fg)CE(f) *(,) ad(fe~)vé(f!gwhf)nit(f) (,)';
 const mappings = Gabc.createMappingsFromSource(ctxt, gabc);
 const score = new ChantScore(ctxt, mappings, true);
-```
 
-Finally, let the `ChantScore` handle the layout process, and use the SVG however you want. `performLayoutAsync` yields to the browser between chunks of work (recommended for web apps); use the synchronous `performLayout` instead for small chants or server-side rendering:
-
-```javascript
-score.performLayoutAsync(ctxt, function() {
-  score.layoutChantLines(ctxt, 1000, function() {
-
-    // render the score to svg code
-    const svgNode = document.createElement('div');
-    svgNode.innerHTML = score.createSvg(ctxt);
-    document.body.appendChild(svgNode);
+score.performLayoutAsync(ctxt, () => {
+  score.layoutChantLines(ctxt, 1000, () => {
+    const el = document.createElement('div');
+    el.innerHTML = score.createSvg(ctxt);
+    document.body.appendChild(el);
   });
 });
 ```
 
-### `<chant-visual>` custom element
+`performLayoutAsync` yields to the browser between chunks of work; for short chants or server-side rendering use the synchronous `performLayout`.
 
-For quick embedding, exsurge also registers a `<chant-visual>` custom element that renders its text content as gabc, and relays out automatically when its container is resized:
+### Development
 
-```html
-<chant-visual use-drop-cap="false" annotation="IV">
-  (c3) PU(ei)ER(i) *() na(iji)tus(h) est(hhh) no(ih/ji)bis,(i) (;) ...
-</chant-visual>
-```
+Requires Node.js 18 or later.
 
-## Motivation
-
-Very few good chant layout software exist for developers. exsurge allows web developers to insert beautiful chant into their workflow with the simplicity of a little JavaScript.
-
-## Installation
-
-```
+```sh
 npm install
-npm run build
+npm run dev        # demo page with a live gabc editor
+npm run build      # dist/exsurge.mjs, .cjs, .iife.js and type declarations
+npm test           # test suite (Vitest)
+npm run typecheck
+npm run lint
 ```
 
-This produces `dist/exsurge.mjs` (ESM), `dist/exsurge.cjs` (CommonJS), and `dist/exsurge.iife.js` (a `window.exsurge` global for plain `<script>` tag use), along with type declarations.
-
-Other useful scripts:
-
-- `npm run dev` — starts a dev server for the demo page (`demo/index.html`), served directly from TypeScript source
-- `npm test` — runs the test suite (Vitest)
-- `npm run typecheck` — runs the TypeScript compiler in check-only mode
-- `npm run lint` — runs ESLint
-
-## API Reference
-
-See the source under `src/` — each module is documented with comments. A rolled-up API reference is not yet published; see [`TODO.md`](TODO.md) for known gaps and planned work.
-
-## Tests
-
-`npm test` runs unit tests for the core primitives and Latin syllabifier, plus an end-to-end smoke test that parses a sample gabc chant, lays it out, and renders it to SVG.
-
-## Contributors
-
-- Fr. Matthew Spencer, O.S.J. — original author
-- See the git history for the many contributors since
+Known gaps and planned work are listed in [`TODO.md`](TODO.md).
 
 ## License
 
-MIT License: http://adampritchard.mit-license.org/ or see [the `LICENSE` file](LICENSE).
+MIT, see [`LICENSE`](LICENSE). Original author: Fr. Matthew Spencer, O.S.J.; see the git history for later contributors.
