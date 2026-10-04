@@ -2,7 +2,7 @@
 
 A TypeScript library that renders Gregorian chant in square-note notation, from gabc to SVG, directly in the browser.
 
-This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), ported to TypeScript and a modern toolchain, and extended for the [Breviario MLG](https://github.com/driacats/mlg-breviary).
+This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), ported to TypeScript and a modern toolchain, and extended for [Clivis](https://github.com/driacats/mlg-breviary), the Liturgy of the Hours in Gregorian chant for the Movimento Liturgico Giovanile.
 
 ## Features
 
