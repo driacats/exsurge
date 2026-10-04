@@ -36,6 +36,17 @@ import { Gabc } from './Exsurge.Gabc';
 //   <chant-visual use-drop-cap="false" annotation="IV">
 //     (c3) PU(ei)ER(i) *() na(iji)tus(h) est(hhh) ...
 //   </chant-visual>
+/** Position of one drawn note (see ChantVisualElement.noteBoxes). */
+export interface NoteBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  /** top and bottom staff lines of the line the note is on */
+  staffTop: number;
+  staffBottom: number;
+}
+
 if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
 
   class ChantVisualElement extends HTMLElement {
@@ -43,6 +54,10 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
     #score: ChantScore | null = null;
     #resizeObserver: ResizeObserver | null = null;
     #lastWidth = 0;
+    #source = '';
+
+    /** The gabc the element was created with (its text content before rendering). */
+    get source(): string { return this.#source; }
 
     connectedCallback(): void {
       const ctxt = new ChantContext();
@@ -59,6 +74,7 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       // capture the gabc source from the element's original text content
       // before we start overwriting innerHTML with the rendered SVG
       const gabcSource = this.textContent ?? '';
+      this.#source = gabcSource;
 
       const useDropCap = this.getAttribute('use-drop-cap') !== 'false';
       const mappings = Gabc.createMappingsFromSource(ctxt, gabcSource);
@@ -81,6 +97,38 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       this.#resizeObserver = new ResizeObserver(() => this.#layout());
       if (this.parentElement)
         this.#resizeObserver.observe(this.parentElement);
+    }
+
+    /**
+     * Where every sung note is drawn, in the SVG's own coordinates, in the order
+     * the notes are sung (custodes, clefs and bars excluded). Used to follow the
+     * melody while it plays. Empty until the score has been laid out.
+     */
+    noteBoxes(): NoteBox[] {
+      const score = this.#score;
+      const ctxt = this.#ctxt;
+      if (!score || !ctxt) return [];
+      const boxes: NoteBox[] = [];
+      const half = 3 * ctxt.staffInterval;
+      for (const line of score.lines ?? []) {
+        const end = line.notationsStartIndex + line.numNotationsOnLine;
+        for (let i = line.notationsStartIndex; i < end; i++) {
+          const notation = score.notations[i];
+          if (!notation?.isNeume) continue;
+          for (const note of notation.notes ?? []) {
+            const b = note.bounds;
+            boxes.push({
+              x: line.bounds.x + notation.bounds.x + b.x,
+              y: line.bounds.y + b.y,
+              width: b.width,
+              height: b.height,
+              staffTop: line.bounds.y - half,
+              staffBottom: line.bounds.y + half,
+            });
+          }
+        }
+      }
+      return boxes;
     }
 
     disconnectedCallback(): void {
