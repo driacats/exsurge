@@ -42,3 +42,13 @@ gabcSource.addEventListener('change', updateChant);
 window.addEventListener('resize', layoutChant);
 
 updateChant();
+
+// listening: <chant-visual>.play() highlights each note while it sounds
+const playButton = document.getElementById('play') as HTMLButtonElement;
+const chantVisual = document.querySelector('chant-visual') as HTMLElement & { play: (o?: object) => () => void };
+let stop: (() => void) | null = null;
+playButton.addEventListener('click', () => {
+  if (stop) { stop(); return; }
+  playButton.textContent = 'Stop';
+  stop = chantVisual.play({ onEnd: () => { stop = null; playButton.textContent = 'Listen'; } });
+});

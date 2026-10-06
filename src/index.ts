@@ -28,6 +28,8 @@
 import { Annotation, ChantContext } from './Exsurge.Drawing';
 import { ChantScore } from './Exsurge.Chant';
 import { Gabc } from './Exsurge.Gabc';
+import { parseGabcMelody, playMelody, type MelodyEvent, type PlayOptions } from './Exsurge.Audio';
+import { followScore } from './Exsurge.Follow';
 
 // client side support: a <chant-visual> custom element (Custom Elements v1) that
 // renders its text content as gabc notation, laid out as SVG, and relayouts
@@ -150,6 +152,25 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
       return boxes;
     }
 
+    /** The melody of the score, for playback or MIDI (see Exsurge.Audio). */
+    melody(): MelodyEvent[] {
+      return parseGabcMelody(this.#source);
+    }
+
+    /**
+     * Plays the whole score, highlighting each note on the staff while it
+     * sounds. Call it from a click or a tap. Returns a function that stops it.
+     */
+    play(options: PlayOptions = {}): () => void {
+      const events = this.melody();
+      const follower = followScore(this, 0, events.filter((e) => e.pitch !== null).length);
+      return playMelody(events, {
+        ...options,
+        onNote: (i) => { follower.show(i); options.onNote?.(i); },
+        onEnd: () => { follower.clear(); options.onEnd?.(); },
+      });
+    }
+
     disconnectedCallback(): void {
       this.#resizeObserver?.disconnect();
       this.#resizeObserver = null;
@@ -215,3 +236,5 @@ export * from './Exsurge.Chant.Markings';
 export * from './Exsurge.Chant.Signs';
 export * from './Exsurge.Chant.Neumes';
 export * from './Exsurge.Gabc';
+export * from './Exsurge.Audio';
+export * from './Exsurge.Follow';

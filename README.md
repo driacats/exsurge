@@ -18,7 +18,8 @@ This is a fork of [frmatthew/exsurge](https://github.com/frmatthew/exsurge), por
 - Gregorio-style text markup in lyrics (`<i>`, `<b>`, `<sc>`, `<sp>V/</sp>`, `<c>`, `<v>`…), explicit custos, drop caps and annotations.
 - Lyric font and rubric colour taken from the CSS variables `--chant-lyric-font` and `--chant-rubric-color`.
 - The gabc inside `<chant-visual>` is never shown as text: the element stays empty until the score is drawn, then gets the `rendered` attribute and fires `chant-rendered`, so a page can style a placeholder with `chant-visual:not([rendered])`.
-- `noteBoxes()` on `<chant-visual>` returns the position of every sung note, so an audio player can highlight the note being played.
+- Listening: `play()` on `<chant-visual>` sings the score with a soft organ-like tone and highlights each note while it sounds; the melody can also be saved as a MIDI file.
+- `noteBoxes()` on `<chant-visual>` returns the position of every sung note.
 - Builds as ESM, CommonJS and a plain `<script>` global, with type declarations.
 
 ## Usage
@@ -55,6 +56,25 @@ score.performLayoutAsync(ctxt, () => {
 ```
 
 `performLayoutAsync` yields to the browser between chunks of work; for short chants or server-side rendering use the synchronous `performLayout`.
+
+### Listening
+
+```javascript
+const chant = document.querySelector('chant-visual');
+button.addEventListener('click', () => {
+  const stop = chant.play({ secondsPerBeat: 0.45, onEnd: () => console.log('done') });
+});
+```
+
+Browsers only allow sound after the user interacts, so call `play()` from a click or a tap. The same pieces are available on their own:
+
+- `parseGabcMelody(gabc)`: the notes of a gabc body, with MIDI pitches (do = C4) and durations in beats (a dotted note lasts 2, a note with an episema 1.5, bars become rests).
+- `playMelody(events, { secondsPerBeat, onNote, onEnd, volume })`: plays them with the Web Audio API and returns a function that stops them. Only one melody plays at a time.
+- `followScore(chantVisual, offset, total)`: highlights the note reported by `onNote` on a rendered score, for when only part of it is played.
+- `melodyToMidi(events, secondsPerBeat)`: a standard MIDI file, as bytes.
+- `splitEuouae(gabc)`: separates an antiphon from its EUOUAE, so the two can be played on their own.
+
+The highlight takes its colour from `--chant-playhead-color` (default: the rubric colour) and its opacity from `--chant-playhead-opacity` (default 0.15).
 
 ### Development
 
