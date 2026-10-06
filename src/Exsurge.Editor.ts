@@ -181,7 +181,11 @@ export function defineChantEditor(): void {
     // -- reading
 
     get readOnly(): boolean { return this.hasAttribute('readonly'); }
-    get value(): string { return this.#header + serializeBody(this.#body); }
+    get value(): string {
+      // before it is connected the gabc is still its text content
+      if (!this.#started) return this.textContent ?? '';
+      return this.#header + serializeBody(this.#body);
+    }
     set value(v: string) {
       if (!this.#started) { this.textContent = v; return; }
       this.#load(v);
