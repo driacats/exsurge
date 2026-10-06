@@ -11,7 +11,8 @@
 // the classes playhead, playhead__band, playhead__bar and playhead--rest, so a
 // page can restyle them.
 
-import type { NoteBox } from './index';
+/** The position of a drawn note (see <chant-visual>.noteBoxes()). */
+interface NoteBox { x: number; y: number; width: number; height: number; staffTop: number; staffBottom: number }
 
 type ChantVisual = Element & { noteBoxes?: () => NoteBox[] };
 

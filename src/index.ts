@@ -30,6 +30,7 @@ import { ChantScore } from './Exsurge.Chant';
 import { Gabc } from './Exsurge.Gabc';
 import { parseGabcMelody, playMelody, type MelodyEvent, type PlayOptions } from './Exsurge.Audio';
 import { followScore } from './Exsurge.Follow';
+import { defineChantEditor } from './Exsurge.Editor';
 
 // client side support: a <chant-visual> custom element (Custom Elements v1) that
 // renders its text content as gabc notation, laid out as SVG, and relayouts
@@ -225,6 +226,9 @@ if (typeof window !== 'undefined' && typeof customElements !== 'undefined') {
 
   if (!customElements.get('chant-visual'))
     customElements.define('chant-visual', ChantVisualElement);
+
+  // <chant-editor>: a <chant-visual> that can be edited note by note
+  defineChantEditor();
 }
 
 export * from './Exsurge.Core';
@@ -238,3 +242,6 @@ export * from './Exsurge.Chant.Neumes';
 export * from './Exsurge.Gabc';
 export * from './Exsurge.Audio';
 export * from './Exsurge.Follow';
+export * from './Exsurge.Model';
+export * from './Exsurge.Editor';
+export * from './Exsurge.Icons';

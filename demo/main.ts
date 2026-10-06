@@ -52,3 +52,15 @@ playButton.addEventListener('click', () => {
   playButton.textContent = 'Stop';
   stop = chantVisual.play({ onEnd: () => { stop = null; playButton.textContent = 'Listen'; } });
 });
+
+// <chant-editor>: show the selection and the gabc as they change
+const editor = document.getElementById('editor') as HTMLElement & { value: string; selection: number[]; focusNote: number | null };
+const editorStatus = document.getElementById('editor-status') as HTMLParagraphElement;
+const editorGabc = document.getElementById('editor-gabc') as HTMLPreElement;
+const showEditor = () => {
+  editorStatus.textContent = editor.selection.length ? `Selected notes: ${editor.selection.map((i) => i + 1).join(', ')}` : 'No note selected.';
+  editorGabc.textContent = editor.value;
+};
+editor.addEventListener('chant-select', showEditor);
+editor.addEventListener('chant-change', showEditor);
+customElements.whenDefined('chant-editor').then(showEditor);

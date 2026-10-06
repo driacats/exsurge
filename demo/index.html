@@ -22,7 +22,7 @@
       box-sizing: border-box;
       font-family: monospace;
     }
-    #chant-container, #chant-visual-container {
+    #chant-container, #chant-visual-container, #chant-editor-container {
       border: 1px solid #ccc;
       padding: 1em;
       overflow-x: auto;
@@ -54,6 +54,19 @@
   <div id="chant-visual-container">
     <chant-visual use-drop-cap="false" annotation="IV">(c3) PU(ei)ER(i) *() na(iji)tus(h) est(hhh) no(ih/ji)bis,(i) (;) et(ei~) fí(iji)li(hg)us(f) da(hhi)tus(h) est(h) no(hihh)bis:(efe) (:) cu(e)jus(f) im(h)pé(gi!jk)ri(ih)um(h) (,) su(h)per(h) hú(ih/ji)me(hg)rum(hhh) e(hf//hghvGF)jus:(gf) (:) et(hg) vo(h)cá(hji)bi(h)tur(hhh) no(h)men(hhh) e(highvGF)jus,(gf) (;) ma(hj)gni(i) con(eh~)sí(h)li(hhhf)i(f) An(fhf!gwh)ge(efe)lus.(e)</chant-visual>
   </div>
+
+  <h2>&lt;chant-editor&gt; custom element</h2>
+
+  <p><em>Click a note to select it (Shift+click for a range, Ctrl/Cmd+click to add one, double click for the neume). ↑ ↓ move the selected notes, ← → move the selection, Delete removes, Ctrl/Cmd+Z undoes. The gabc below follows every change.</em></p>
+
+  <div id="chant-editor-container">
+    <chant-editor id="editor">name:Ecce;
+mode:2;
+%%
+(f3) EC(e)ce(f) Dó(fh)mi(h)nus(hiH'Gh) (,) vé(h)ni(hih)et,(e.) (;) et(e) om(fh)nes(h) san(hhf)cti(fg) e(h)jus(f) cum(h) e(fe)o:(e.) (::)</chant-editor>
+  </div>
+  <p id="editor-status"></p>
+  <pre id="editor-gabc"></pre>
 
   <script type="module" src="./main.ts"></script>
 </body>
